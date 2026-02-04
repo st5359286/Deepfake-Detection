@@ -1,3 +1,5 @@
+import config from './config.js';
+
 // --- DOM Element Selection ---
 const screens = {
     upload: document.getElementById('upload-screen'),
@@ -170,7 +172,7 @@ async function startAnalysis(file) {
         const userString = localStorage.getItem('user');
         const userId = userString ? JSON.parse(userString).id : null;
 
-        const response = await fetch('http://localhost:3000/api/analyze-fast', {
+        const response = await fetch(`${config.API_URL}/api/analyze-fast`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -250,7 +252,7 @@ async function handleGenerateSummary() {
     summaryPanel.classList.add('hidden');
 
     try {
-        const response = await fetch('http://localhost:3000/api/summarize', {
+        const response = await fetch(`${config.API_URL}/api/summarize`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analysisResult })
@@ -283,7 +285,7 @@ async function handleDownloadReport() {
     btn.disabled = true;
 
     try {
-        const response = await fetch('http://localhost:3000/api/report/pdf', {
+        const response = await fetch(`${config.API_URL}/api/report/pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

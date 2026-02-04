@@ -1,3 +1,5 @@
+import config from './config.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('reset-password-form');
     const messageDisplay = document.getElementById('message-display');
@@ -23,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.textContent = 'Resetting...';
 
         try {
-            const response = await fetch('http://localhost:3000/reset-password', {
+            const response = await fetch(`${config.API_URL}/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, password }),

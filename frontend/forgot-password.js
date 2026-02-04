@@ -1,3 +1,5 @@
+import config from './config.js';
+
 document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -11,7 +13,7 @@ document.getElementById('forgot-password-form').addEventListener('submit', async
     submitButton.textContent = 'Sending...';
 
     try {
-        const response = await fetch('http://localhost:3000/forgot-password', {
+        const response = await fetch(`${config.API_URL}/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),

@@ -1,3 +1,5 @@
+import config from './config.js';
+
 // --- Helper Functions ---
 function showDashboard(role) {
     if (role === 'admin') {
@@ -11,7 +13,7 @@ function showDashboard(role) {
 
 async function fetchAdminData() {
     try {
-        const response = await fetch('http://localhost:3000/api/admin/activity');
+        const response = await fetch(`${config.API_URL}/api/admin/activity`);
         if (!response.ok) throw new Error('Failed to fetch admin data');
 
         const activity = await response.json();
@@ -44,7 +46,7 @@ async function fetchAdminData() {
 
 async function fetchAdminStats() {
     try {
-        const response = await fetch('http://localhost:3000/api/admin/stats');
+        const response = await fetch(`${config.API_URL}/api/admin/stats`);
         if (!response.ok) throw new Error('Failed to fetch stats');
 
         const stats = await response.json();
@@ -63,7 +65,7 @@ window.deleteUser = async function (userId, username) {
     }
 
     try {
-        const response = await fetch(`http://localhost:3000/api/admin/user/${userId}`, {
+        const response = await fetch(`${config.API_URL}/api/admin/user/${userId}`, {
             method: 'DELETE'
         });
 
@@ -84,7 +86,7 @@ window.deleteUser = async function (userId, username) {
 
 async function handleExport() {
     try {
-        const response = await fetch('http://localhost:3000/api/admin/export-activity');
+        const response = await fetch(`${config.API_URL}/api/admin/export-activity`);
         if (!response.ok) throw new Error('Export failed');
 
         const blob = await response.blob();
@@ -104,7 +106,7 @@ async function handleExport() {
 
 async function fetchUserActivity(userId) {
     try {
-        const response = await fetch(`http://localhost:3000/api/user-activity/${userId}`);
+        const response = await fetch(`${config.API_URL}/api/user-activity/${userId}`);
         if (!response.ok) throw new Error('Failed to fetch user activity');
 
         const stats = await response.json();
@@ -135,7 +137,7 @@ async function fetchUserActivity(userId) {
 
     try {
         // Fetch protected data from the dashboard endpoint
-        const response = await fetch(`http://localhost:3000/dashboard?username=${user.username}`);
+        const response = await fetch(`${config.API_URL}/dashboard?username=${user.username}`);
         const data = await response.json();
 
         if (response.ok && data.user) {

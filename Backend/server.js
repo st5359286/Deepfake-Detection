@@ -10,7 +10,8 @@ const upload = multer(); // Middleware for handling form-data, primarily for fil
 const db = require('./db');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'; // Or 5173 for Vite dev
 
 // Middleware
 app.use(cors());
@@ -282,7 +283,7 @@ app.post('/forgot-password', (req, res) => {
             // --- Email Sending Simulation ---
             // In a real app, you would use a real email service (SendGrid, Mailgun, etc.)
             // For development, we'll log it to the console.
-            const resetURL = `http://localhost:3000/reset-password.html?token=${token}`;
+            const resetURL = `${frontendUrl}/reset-password.html?token=${token}`;
             console.log('--- PASSWORD RESET EMAIL ---');
             console.log(`To: ${user.email}`);
             console.log(`Subject: Password Reset Request`);

@@ -64,7 +64,9 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import config from './config.js';
+
     const urlParams = new URLSearchParams(window.location.search);
     const email = urlParams.get('email');
 
@@ -74,7 +76,7 @@
       const errorMsg = document.getElementById('error-message');
 
       try {
-        const response = await fetch('http://localhost:3000/verify-otp', {
+        const response = await fetch(`${config.API_URL}/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp })
@@ -108,7 +110,7 @@
       errorMsg.className = 'text-blue-400 text-xs text-center min-h-[20px] font-bold';
 
       try {
-        const response = await fetch('http://localhost:3000/resend-otp', {
+        const response = await fetch(`${config.API_URL}/resend-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
