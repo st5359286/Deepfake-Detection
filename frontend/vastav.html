@@ -5,303 +5,209 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analysis | Deepfake Detector</title>
+    <!-- Use the Tailwind Play CDN for development -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        void: '#0f0f1a',
-                        accent: '#8b5cf6',
-                        'accent-light': '#a78bfa',
-                        'accent-dark': '#7c3aed',
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
+                        void: '#0f172a',
+                        cyan: '#3b82f6',
+                        neonGreen: '#22c55e',
+                        alertRed: '#ef4444',
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"Inter"', 'sans-serif'],
                     },
                 }
             }
         }
     </script>
     <link rel="stylesheet" href="style.css">
-    <style>
-        body {
-            background: #0f0f1a;
-            background-image: 
-                radial-gradient(ellipse at top, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
-        }
-        
-        .upload-area {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: #8b5cf6;
-            background: rgba(139, 92, 246, 0.05);
-            transform: scale(1.01);
-        }
-        
-        .tab-btn.active {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-        }
-        
-        .progress-animate {
-            animation: progress-pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes progress-pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.7;
-            }
-        }
-        
-        .scanner-link {
-            transition: all 0.3s ease;
-        }
-        
-        .scanner-link:hover {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: #8b5cf6;
-            transform: translateY(-2px);
-        }
-    </style>
 </head>
 
-<body class="bg-[#0f0f1a] text-gray-300 font-sans min-h-screen relative overflow-x-hidden">
+<body class="bg-void text-gray-300 font-sans min-h-screen relative overflow-x-hidden">
 
-    <!-- Background Effects -->
-    <div class="fixed inset-0 pointer-events-none overflow-hidden">
-        <div class="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-    </div>
-
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl relative z-10">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-8 animate-fade-in">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl relative z-10">
+        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
             <div>
-                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center shadow-lg shadow-accent/30">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        </svg>
-                    </div>
-                    Media Analysis
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    Media Analysis Tool
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">Deep Neural Analysis Module</p>
             </div>
-            <button onclick="window.location.href='dashboard.html'"
-                class="text-sm font-medium text-gray-400 hover:text-white flex items-center gap-2 transition bg-black/30 px-4 py-2 rounded-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back
+            <button onclick="window.location.href='/dashboard.html'"
+                class="text-sm font-medium text-gray-400 hover:text-white flex items-center gap-2 transition">
+                <span class="text-xl">«</span> Back to Dashboard
             </button>
         </header>
 
-        <main class="glass-panel p-8 relative">
+        <main class="glass-panel p-8 relative bg-slate-800 border-slate-700">
 
-            <!-- Upload Screen -->
-            <div id="upload-screen" class="screen active">
-                <!-- Tab Buttons -->
-                <div class="flex flex-wrap justify-center gap-3 mb-8">
-                    <button class="tab-btn active px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2" data-tab="image">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Image
+            <div id="upload-screen" class="screen active text-center">
+                <div class="relative z-10 flex flex-wrap justify-center gap-4 mb-12">
+                    <button class="tab btn-cyber min-w-[160px] flex items-center justify-center gap-2 text-sm"
+                        data-tab="image">
+                        <span class="animate-pulse hidden loading-marker">●</span>
+                        Scan Image
                     </button>
-                    <button class="tab-btn px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2" data-tab="video">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                        Video
+                    <button class="tab btn-cyber min-w-[160px] flex items-center justify-center gap-2 text-sm"
+                        data-tab="video">
+                        <span class="animate-pulse hidden loading-marker">●</span>
+                        Scan Video
                     </button>
-                    <button class="tab-btn px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2" data-tab="audio">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 6l12-3"></path>
-                        </svg>
-                        Audio
+                    <button class="tab btn-cyber min-w-[160px] flex items-center justify-center gap-2 text-sm"
+                        data-tab="audio">
+                        <span class="animate-pulse hidden loading-marker">●</span>
+                        Scan Audio
                     </button>
                 </div>
 
-                <!-- Quick Access Links -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 max-w-2xl mx-auto">
-                    <a href="code-scanner.html" class="scanner-link flex items-center justify-center gap-2 p-3 bg-black/30 border border-gray-800 rounded-xl text-sm text-gray-400 hover:text-accent">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                <div id="dropZone"
+                    class="border-2 border-dashed border-gray-600 bg-slate-900/50 rounded-lg p-12 transition hover:border-blue-500 hover:bg-blue-500/5 group cursor-pointer relative">
+                    <div id="upload-icon-container" class="mb-4 text-gray-500 group-hover:text-blue-500 transition">
+                        <!-- Replaced specific icons with a generic upload symbol for cleaner code, or JS handles it -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        Code Scanner
-                    </a>
-                    <a href="leetcode.html" class="scanner-link flex items-center justify-center gap-2 p-3 bg-black/30 border border-gray-800 rounded-xl text-sm text-gray-400 hover:text-accent">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                        </svg>
-                        LeetCode
-                    </a>
-                    <a href="live-detection.html" class="scanner-link flex items-center justify-center gap-2 p-3 bg-black/30 border border-gray-800 rounded-xl text-sm text-gray-400 hover:text-accent">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                        Live Check
-                    </a>
-                </div>
-
-                <!-- Drop Zone -->
-                <div id="dropZone" class="upload-area border-2 border-dashed border-gray-700 bg-black/20 rounded-2xl p-12 transition cursor-pointer relative">
-                    <div class="text-center">
-                        <div class="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                        </div>
-                        <p class="text-xl font-semibold text-white mb-2">Upload Media</p>
-                        <p class="text-sm text-gray-500 mb-6">Drag and drop your file here, or click to browse</p>
-                        
-                        <button type="button" class="btn-primary">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                            </svg>
-                            Select File
-                        </button>
-
-                        <p id="upload-formats" class="text-xs text-gray-600 mt-6 font-mono">[ JPG, PNG, WEBP, MP4, MP3 ]</p>
                     </div>
-                    <input type="file" id="file-input" class="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer">
+                    <p id="upload-text" class="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition">
+                        Upload Media</p>
+                    <p class="text-sm text-gray-400 mb-6">Drag files here or click below</p>
+
+                    <!-- Button visual only, covered by transparent file input (z-10) -->
+                    <button type="button"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition shadow-lg shadow-blue-500/30">
+                        Select File
+                    </button>
+
+                    <p id="upload-formats" class="text-xs text-gray-500 mt-6 font-mono">[ JPG, PNG, WEBP, MP4, MP3 ]</p>
+                    <input type="file" id="file-input"
+                        class="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer z-10">
                 </div>
-                
-                <div id="error-display" class="text-danger text-sm font-medium mt-6 text-center hidden"></div>
+                <div id="error-display"
+                    class="text-alertRed text-sm font-bold mt-6 min-h-[20px] hidden uppercase border border-alertRed inline-block px-4 py-2 bg-alertRed/10">
+                </div>
             </div>
 
-            <!-- Analyzing Screen -->
             <div id="analyzing-screen" class="screen hidden text-center py-12">
-                <div class="w-24 h-24 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <svg class="w-12 h-12 text-accent animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </div>
-                
-                <h2 id="analyzing-title" class="text-2xl font-bold text-white mb-2">Analyzing Media...</h2>
-                <p id="fileName" class="text-accent text-sm mb-8 font-mono">Processing: <span id="file-name-display">-</span></p>
+                <h2 id="analyzing-title" class="text-2xl font-bold text-white mb-2 tracking-widest animate-pulse">
+                    PROCESSING_DATA_STREAM...</h2>
+                <p id="fileName" class="text-cyan text-sm mb-8 font-mono">artifact_id: unknown</p>
 
-                <div class="w-full max-w-lg mx-auto mb-8">
-                    <div class="progress-bar">
-                        <div id="progress-bar" class="progress-bar-fill" style="width: 0%"></div>
-                    </div>
-                    <p id="progress-text" class="text-center text-sm text-gray-500 mt-2">0%</p>
+                <div id="progress-wrapper"
+                    class="w-full max-w-lg mx-auto bg-gray-800 h-6 rounded-full overflow-hidden mb-8 border border-gray-700 relative">
+                    <div id="progress-bar"
+                        class="bg-cyan h-full transition-all duration-300 shadow-[0_0_10px_#00f3ff] flex items-center justify-center text-xs font-bold text-black"
+                        style="width: 0%">0%</div>
                 </div>
 
-                <div id="analyzing-loader" class="space-y-2 text-left max-w-xs mx-auto font-mono text-sm text-gray-500 hidden">
-                    <p class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                        Extracting frames...
-                    </p>
-                    <p class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-accent rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
-                        Initializing neural network...
-                    </p>
-                    <p class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-accent rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
-                        Analyzing spectral features...
-                    </p>
+                <p id="analyzing-text" class="hidden"></p>
+                <div id="analyzing-loader"
+                    class="loader mt-4 hidden text-neonGreen text-xs space-y-1 text-left max-w-xs mx-auto font-mono">
+                    <p>> extracting_frames...</p>
+                    <p>> initializing_tensor_flow...</p>
+                    <p>> analyzing_spectrum...</p>
                 </div>
 
                 <div class="mt-8">
-                    <button id="cancel-btn" class="text-sm text-danger hover:text-white border border-danger/30 hover:border-danger px-6 py-2 rounded-lg transition">
-                        Cancel Analysis
-                    </button>
+                    <button id="cancel-btn"
+                        class="text-xs text-red-500 hover:text-red-400 uppercase tracking-widest border border-red-900 hover:border-red-500 px-4 py-2 transition">[
+                        ABORT_SEQUENCE ]</button>
                 </div>
             </div>
 
-            <!-- Results Screen -->
             <div id="results-screen" class="screen hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Left Column: Media Preview -->
-                    <div id="media-preview" class="bg-black/50 border border-gray-800 rounded-2xl flex items-center justify-center p-4 min-h-[300px] relative overflow-hidden">
-                        <div class="absolute top-3 left-3 badge badge-accent text-xs">Preview</div>
+                    <div id="media-preview"
+                        class="bg-black/50 border border-gray-700 rounded flex items-center justify-center p-2 min-h-[300px] relative">
+                        <div class="absolute top-2 left-2 text-xs text-cyan opacity-50">PREVIEW_MODE</div>
+                        <!-- Media inserted by JS -->
                     </div>
 
                     <!-- Right Column: Analysis Details -->
                     <div class="space-y-6">
                         <div class="border-b border-gray-800 pb-4">
-                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Final Verdict</p>
-                            <h2 id="verdictText" class="text-3xl font-bold text-white mb-2"></h2>
-                            <p class="text-sm text-gray-400">Confidence: <span id="confidenceScore" class="font-bold text-accent"></span></p>
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">FINAL_VERDICT</p>
+                            <h2 id="verdictText" class="text-3xl font-bold text-white mb-1"></h2>
+                            <p class="text-sm text-gray-400">CONFIDENCE_LEVEL: <span id="confidenceScore"
+                                    class="font-bold text-cyan"></span></p>
                         </div>
 
                         <div>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Analysis Summary</h3>
+                            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">> SYSTEM_ANALYSIS
+                            </h3>
                             <div id="chiefJudgment" class="forensic-item">
+                                <!-- Content -->
                             </div>
                         </div>
 
                         <!-- Accordion Style Logs -->
-                        <div class="space-y-3">
-                            <details class="group border border-gray-800 rounded-xl overflow-hidden">
-                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none text-sm font-medium text-gray-300 group-open:text-accent hover:bg-white/5">
-                                    <span>Visual Artifacts</span>
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
+                        <div class="space-y-4">
+                            <details
+                                class="group border border-gray-800 open:border-cyan/30 open:bg-cyan/5 transition-all">
+                                <summary
+                                    class="flex items-center justify-between p-3 cursor-pointer select-none text-sm font-bold text-gray-300 group-open:text-cyan hover:bg-white/5">
+                                    <span>[+] VISUAL_ARTIFACTS</span>
+                                    <span class="text-xs text-gray-600 group-open:text-cyan">EXPAND</span>
                                 </summary>
-                                <div id="visualList" class="p-4 pt-0 text-sm space-y-2 text-gray-400"></div>
+                                <div id="visualList"
+                                    class="p-3 pt-0 text-xs space-y-2 border-t border-gray-800/50 mt-2"></div>
                             </details>
 
-                            <details class="group border border-gray-800 rounded-xl overflow-hidden">
-                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none text-sm font-medium text-gray-300 group-open:text-accent hover:bg-white/5">
-                                    <span>Metadata Signatures</span>
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
+                            <details
+                                class="group border border-gray-800 open:border-cyan/30 open:bg-cyan/5 transition-all">
+                                <summary
+                                    class="flex items-center justify-between p-3 cursor-pointer select-none text-sm font-bold text-gray-300 group-open:text-cyan hover:bg-white/5">
+                                    <span>[+] METADATA_SIGNATURES</span>
+                                    <span class="text-xs text-gray-600 group-open:text-cyan">EXPAND</span>
                                 </summary>
-                                <div id="metadataList" class="p-4 pt-0 text-sm space-y-2 text-gray-400"></div>
+                                <div id="metadataList"
+                                    class="p-3 pt-0 text-xs space-y-2 border-t border-gray-800/50 mt-2"></div>
                             </details>
 
-                            <details class="group border border-gray-800 rounded-xl overflow-hidden">
-                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none text-sm font-medium text-gray-300 group-open:text-accent hover:bg-white/5">
-                                    <span>Forensic Details</span>
-                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
+                            <details
+                                class="group border border-gray-800 open:border-cyan/30 open:bg-cyan/5 transition-all">
+                                <summary
+                                    class="flex items-center justify-between p-3 cursor-pointer select-none text-sm font-bold text-gray-300 group-open:text-cyan hover:bg-white/5">
+                                    <span>[+] FORENSIC_DETAILS</span>
+                                    <span class="text-xs text-gray-600 group-open:text-cyan">EXPAND</span>
                                 </summary>
-                                <div id="forensicList" class="p-4 pt-0 text-sm space-y-2 text-gray-400"></div>
+                                <div id="forensicList"
+                                    class="p-3 pt-0 text-xs space-y-2 border-t border-gray-800/50 mt-2"></div>
                             </details>
                         </div>
 
-                        <div class="bg-black/30 p-4 border border-gray-800 rounded-xl">
-                            <button id="generate-summary-btn" class="btn-primary w-full text-center text-sm mb-3">
-                                Generate Report Summary
+                        <div class="bg-black/30 p-4 border border-gray-800 mt-6">
+                            <button id="generate-summary-btn" class="btn-cyber w-full text-center text-xs mb-2">
+                                >> COMPILE_MISSION_REPORT
                             </button>
-                            <button id="download-report-btn" class="btn-primary w-full text-center text-sm hidden bg-success border-success hover:bg-green-500">
-                                Download PDF Report
+                            <button id="download-report-btn"
+                                class="btn-cyber w-full text-center text-xs hidden border-green-500 text-green-500 hover:bg-green-500 hover:text-black">
+                                [ DOWNLOAD_EVIDENCE_PDF ]
                             </button>
                             <div id="summary-panel" class="mt-4 text-left border-t border-gray-700 pt-4 hidden">
-                                <h4 class="text-xs font-semibold text-accent uppercase mb-2">Summary:</h4>
-                                <p id="summaryText" class="text-gray-400 text-sm leading-relaxed font-mono"></p>
+                                <h4 class="text-xs font-bold text-cyan uppercase mb-2">MISSION_SUMMARY:</h4>
+                                <p id="summaryText" class="text-gray-400 text-xs leading-relaxed font-mono"></p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="text-center pt-8 mt-8 border-t border-gray-800">
-                    <button id="reset-btn" class="text-sm text-gray-500 hover:text-white transition">
-                        Start New Analysis
+                    <button id="reset-btn"
+                        class="text-xs text-gray-500 hover:text-white uppercase tracking-widest transition">
+                        [ RESTART_SEQUENCE ]
                     </button>
                 </div>
             </div>
         </main>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="/app.js"></script>
 </body>
 
 </html>
-

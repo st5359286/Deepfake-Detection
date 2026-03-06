@@ -13,13 +13,6 @@ const summaryPanel = document.getElementById('summary-panel');
 const summaryText = document.getElementById('summaryText');
 const generateSummaryBtn = document.getElementById('generate-summary-btn');
 const downloadReportBtn = document.getElementById('download-report-btn');
-const xaiControls = document.getElementById('xai-controls');
-const heatmapToggle = document.getElementById('heatmap-toggle');
-const heatmapOpacity = document.getElementById('heatmap-opacity');
-const opacityControlContainer = document.getElementById('opacity-control-container');
-const reportFeedbackBtn = document.getElementById('report-feedback-btn');
-const feedbackSuccess = document.getElementById('feedback-success');
-const xaiTitle = document.getElementById('xai-title');
 
 // State
 let analysisResult = null;
@@ -63,90 +56,31 @@ function displayResults(data) {
   confidenceScore.textContent = `${data.confidence}%`;
   confidenceScore.style.color = data.is_deepfake ? '#f87171' : '#4ade80';
 
-  const confidenceBar = document.getElementById('confidenceBar');
-  if (confidenceBar) {
-    confidenceBar.style.width = `${data.confidence}%`;
-    confidenceBar.className = `h-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.5)] ${data.is_deepfake ? 'bg-red-500 shadow-red-500/50' : 'bg-emerald-500 shadow-emerald-500/50'}`;
-  }
-
-  // Preview Logic
+  // Preview
   const placeholder = document.getElementById('preview-placeholder');
   if (placeholder) placeholder.remove();
 
-  const isAudio = data.type === 'audio' || (fileMetadata && fileMetadata.type && fileMetadata.type.startsWith('audio/'));
-  const isVideo = data.type === 'video' || (fileMetadata && fileMetadata.type && fileMetadata.type.startsWith('video/'));
-  const isImage = data.type === 'image' || (fileMetadata && fileMetadata.type && fileMetadata.type.startsWith('image/'));
-
-  // If we have preview data, render standard HTML5 players
-  if (filePreviewData) {
-    if (isImage) {
+  if (filePreviewData && fileMetadata.type) {
+    if (fileMetadata.type.startsWith('image/')) {
       const img = document.createElement('img');
       img.src = filePreviewData;
-      img.className = 'max-w-full max-h-[400px] rounded-md relative z-10';
+      img.className = 'max-w-full max-h-[400px] rounded-md';
       mediaPreview.appendChild(img);
-      if (xaiTitle) xaiTitle.textContent = '>> XAI_EXPLANATION (Grad-CAM)';
-    } else if (isVideo) {
+    } else if (fileMetadata.type.startsWith('video/')) {
       const video = document.createElement('video');
       video.src = filePreviewData;
       video.controls = true;
-      video.className = 'max-w-full max-h-[400px] rounded-md relative z-10';
+      video.className = 'max-w-full max-h-[400px] rounded-md';
       mediaPreview.appendChild(video);
-      if (xaiTitle) xaiTitle.textContent = '>> TEMPORAL_ANALYSIS (Frame Fusion)';
-    } else if (isAudio) {
+    } else if (fileMetadata.type.startsWith('audio/')) {
       const audio = document.createElement('audio');
       audio.src = filePreviewData;
       audio.controls = true;
-      audio.className = 'w-full relative z-10';
+      audio.className = 'w-full';
       mediaPreview.appendChild(audio);
-      if (xaiTitle) xaiTitle.textContent = '>> VOICE_SPECTROGRAM (MFCC)';
     }
   } else {
-    // We DON'T have preview data (file was too large)
-    if (isAudio) {
-      const noPreview = document.createElement('div');
-      noPreview.className = 'w-full h-[150px] flex items-center justify-center text-gray-400 bg-gray-900 border border-gray-700 rounded-md relative z-10 p-4 font-mono text-xs text-center';
-      noPreview.innerHTML = `<div>[ AUDIO_STREAM_ACCEPTED ]<br/>File too large for local playback<br/>Spectrogram Analysis Available Below</div>`;
-      mediaPreview.appendChild(noPreview);
-      if (xaiTitle) xaiTitle.textContent = '>> VOICE_SPECTROGRAM (MFCC)';
-    } else if (isVideo) {
-      const noPreview = document.createElement('div');
-      noPreview.className = 'w-full h-[200px] flex items-center justify-center text-gray-400 bg-gray-900 border border-gray-700 rounded-md relative z-10 p-4 font-mono text-xs text-center';
-      noPreview.innerHTML = `<div>[ VIDEO_STREAM_ACCEPTED ]<br/>File too large for local playback</div>`;
-      mediaPreview.appendChild(noPreview);
-      if (xaiTitle) xaiTitle.textContent = '>> TEMPORAL_ANALYSIS (Frame Fusion)';
-    } else {
-      mediaPreview.innerHTML = '<div class="text-gray-500">Preview not available (File too large or missing)</div>';
-    }
-  }
-
-  // Abstracted Heatmap Overlay Logic (applies to ALL media types if heatmap_url exists)
-  if (data.heatmap_url) {
-    xaiControls.classList.remove('hidden');
-    const heatmapImg = document.createElement('img');
-    heatmapImg.src = `${config.API_URL}${data.heatmap_url}`;
-    heatmapImg.id = 'heatmap-overlay';
-    heatmapImg.className = 'absolute max-w-full max-h-[400px] rounded-md z-20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 pointer-events-none opacity-0';
-    mediaPreview.appendChild(heatmapImg);
-
-    heatmapToggle.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        heatmapImg.style.opacity = heatmapOpacity.value;
-        heatmapOpacity.disabled = false;
-        heatmapOpacity.classList.remove('cursor-not-allowed');
-        opacityControlContainer.classList.remove('opacity-50');
-      } else {
-        heatmapImg.style.opacity = 0;
-        heatmapOpacity.disabled = true;
-        heatmapOpacity.classList.add('cursor-not-allowed');
-        opacityControlContainer.classList.add('opacity-50');
-      }
-    });
-
-    heatmapOpacity.addEventListener('input', (e) => {
-      if (heatmapToggle.checked) {
-        heatmapImg.style.opacity = e.target.value;
-      }
-    });
+    mediaPreview.innerHTML = '<div class="text-gray-500">Preview not available (File too large or missing)</div>';
   }
 
   // Forensics
@@ -328,46 +262,5 @@ async function handleDownloadReport() {
   }
 }
 
-async function handleFeedbackReport() {
-  if (!analysisResult) return;
-
-  // Disable button to prevent double submit
-  reportFeedbackBtn.disabled = true;
-  reportFeedbackBtn.classList.add('opacity-50', 'cursor-not-allowed');
-  reportFeedbackBtn.innerHTML = 'Submitting Feedback...';
-
-  const predictedLabel = analysisResult.is_deepfake ? 'Fake' : 'Real';
-  const userFeedbackLabel = analysisResult.is_deepfake ? 'Real' : 'Fake'; // User indicating opposite
-  const user = JSON.parse(localStorage.getItem('user')) || {};
-
-  try {
-    const response = await fetch(`${config.API_URL}/api/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user.id || null,
-        fileHash: analysisResult.file_hash,
-        predictedLabel: predictedLabel,
-        userFeedbackLabel: userFeedbackLabel
-      })
-    });
-
-    if (!response.ok) throw new Error('Failed to submit feedback');
-
-    reportFeedbackBtn.classList.add('hidden');
-    feedbackSuccess.classList.remove('hidden');
-
-  } catch (e) {
-    console.error("Feedback submission failed:", e);
-    alert("Failed to submit feedback. Our systems might be overloaded.");
-    reportFeedbackBtn.disabled = false;
-    reportFeedbackBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    reportFeedbackBtn.innerHTML = 'Report Incorrect Result';
-  }
-}
-
 generateSummaryBtn.addEventListener('click', handleGenerateSummary);
 downloadReportBtn.addEventListener('click', handleDownloadReport);
-if (reportFeedbackBtn) {
-  reportFeedbackBtn.addEventListener('click', handleFeedbackReport);
-}
