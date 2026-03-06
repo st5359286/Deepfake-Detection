@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode & Vibe Coding | Deepfake Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#0f0f1a',
+                        accent: '#8b5cf6',
+                        'accent-light': '#a78bfa',
+                        'accent-dark': '#7c3aed',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        easy: '#22c55e',
+                        medium: '#f59e0b',
+                        hard: '#ef4444',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: #0f0f1a;
+            background-image: 
+                radial-gradient(ellipse at top, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+        }
+        
+        .problem-card {
+            transition: all 0.3s ease;
+        }
+        
+        .problem-card:hover {
+            transform: translateY(-2px);
+            border-color: #8b5cf6;
+        }
+        
+        .code-editor {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            tab-size: 2;
+        }
+        
+        .vibe-pulse {
+            animation: vibe-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes vibe-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f0f1a] text-gray-300 font-sans min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- Background Effects -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-black/30 backdrop-blur-md sticky top-0 z-50 relative">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <a href="vastav.html" class="text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-gradient-to-br from-accent to-accent-dark rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                    </div>
+                    <h1 class="text-lg font-bold text-white">LeetCode & Vibe Coding</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="vibe-mode-btn" class="vibe-pulse px-4 py-2 bg-accent/20 border border-accent/50 rounded-lg text-sm text-accent hover:bg-accent/30 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Vibe Mode
+                </button>
+                <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+                <span class="text-xs text-gray-500">System Active</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 flex flex-col relative z-10">
+
+        <!-- Tab Navigation -->
+        <div class="flex gap-4 mb-8">
+            <button id="tab-problems" class="tab-btn active px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                Problems
+            </button>
+            <button id="tab-practice" class="tab-btn px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Practice Arena
+            </button>
+            <button id="tab-vibe" class="tab-btn px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                Vibe AI
+            </button>
+        </div>
+
+        <!-- Problems List View -->
+        <div id="problems-view" class="flex-grow">
+            <!-- Difficulty Filter -->
+            <div class="flex gap-3 mb-6">
+                <button class="filter-btn active px-4 py-2 rounded-lg text-sm bg-accent/20 text-accent border border-accent/50" data-filter="all">All</button>
+                <button class="filter-btn px-4 py-2 rounded-lg text-sm bg-green-500/10 text-green-500 border border-green-500/30 hover:bg-green-500/20" data-filter="easy">Easy</button>
+                <button class="filter-btn px-4 py-2 rounded-lg text-sm bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-500/20" data-filter="medium">Medium</button>
+                <button class="filter-btn px-4 py-2 rounded-lg text-sm bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20" data-filter="hard">Hard</button>
+            </div>
+
+            <!-- Problems Grid -->
+            <div id="problems-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Problems will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Practice Arena View -->
+        <div id="practice-view" class="hidden flex-grow">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                <!-- Problem Description -->
+                <div class="glass-panel p-6 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 id="practice-title" class="text-xl font-bold text-white">Two Sum</h3>
+                        <span id="practice-difficulty" class="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-500">Easy</span>
+                    </div>
+                    <p id="practice-description" class="text-gray-400 text-sm mb-6 leading-relaxed">
+                        Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="bg-black/30 p-4 rounded-xl">
+                            <p class="text-xs text-gray-500 mb-2">Example 1:</p>
+                            <p class="text-gray-300 text-sm font-mono">Input: nums = [2,7,11,15], target = 9<br>Output: [0,1]<br>Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].</p>
+                        </div>
+                        <div class="bg-black/30 p-4 rounded-xl">
+                            <p class="text-xs text-gray-500 mb-2">Constraints:</p>
+                            <p class="text-gray-400 text-sm font-mono">• 2 <= nums.length <= 10^4<br>• -10^9 <= nums[i] <= 10^9<br>• -10^9 <= target <= 10^9</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Editor -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-400">Language:</span>
+                            <select id="language-select" class="bg-black/50 border border-gray-700 rounded-lg px-3 py-1 text-sm text-white">
+                                <option value="javascript">JavaScript</option>
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="cpp">C++</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="run-btn" class="px-4 py-2 bg-green-500/20 text-green-500 rounded-lg text-sm hover:bg-green-500/30 transition">
+                                Run Code
+                            </button>
+                            <button id="submit-btn" class="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent-dark transition">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="code-editor" class="code-editor flex-grow w-full bg-black/50 border border-gray-700 rounded-xl p-4 text-sm text-gray-300 focus:border-accent focus:outline-none resize-none" spellcheck="false">// Write your solution here
+function twoSum(nums, target) {
+    
+}</textarea>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div id="output-panel" class="mt-6 glass-panel p-4 rounded-2xl hidden">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-medium text-gray-400">Output:</span>
+                    <span id="output-status" class="text-xs px-2 py-1 rounded-full"></span>
+                </div>
+                <pre id="output-content" class="text-sm font-mono text-gray-300 overflow-x-auto"></pre>
+            </div>
+        </div>
+
+        <!-- Vibe AI View -->
+        <div id="vibe-view" class="hidden flex-grow">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Vibe Input -->
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Vibe AI Assistant
+                    </h3>
+                    <p class="text-gray-500 text-sm mb-4">Describe what you want to build, and I'll generate the code for you!</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-2 block">What do you want to build?</label>
+                            <textarea id="vibe-input" class="w-full h-32 bg-black/50 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 focus:border-accent focus:outline-none resize-none" placeholder="e.g., A React component for a login form with email and password validation..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="text-xs text-gray-500 mb-2 block">Tech Stack (optional)</label>
+                            <input id="vibe-stack" type="text" class="w-full bg-black/50 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-300 focus:border-accent focus:outline-none" placeholder="React, Node.js, MongoDB...">
+                        </div>
+
+                        <button id="vibe-generate-btn" class="w-full py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-xl font-medium hover:opacity-90 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Generate Code
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vibe Output -->
+                <div class="glass-panel p-6 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white">Generated Code</h3>
+                        <button id="copy-vibe-code" class="text-sm text-accent hover:text-white transition">Copy Code</button>
+                    </div>
+                    <pre id="vibe-output" class="h-[400px] bg-black/50 border border-gray-700 rounded-xl p-4 text-sm font-mono text-gray-300 overflow-auto"><span class="text-gray-500">// Generated code will appear here...</span></pre>
+                    
+                    <div id="vibe-loading" class="hidden flex items-center justify-center py-8">
+                        <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                        <span class="ml-3 text-accent">Generating code...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 bg-black/30 py-4 mt-auto relative z-10">
+        <div class="container mx-auto px-4 text-center text-xs text-gray-600">
+            Deepfake Detector | LeetCode & Vibe Coding Module
+        </div>
+    </footer>
+
+    <script src="leetcode.js"></script>
+</body>
+
+</html>

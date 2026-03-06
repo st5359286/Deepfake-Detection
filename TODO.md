@@ -1,25 +1,60 @@
-# TODO: Folder Upload Feature Implementation
+# Deepfake Detection Project - Bug Fixes & Backend Improvements
 
-## Plan:
+## Task: Fix bugs (2) and improve backend functionality (3)
 
-1. [x] Analyze existing code structure (code-scanner.js, code-scanner.html, server.js)
-2. [x] Modify frontend/code-scanner.html - Add folder upload UI with tab
-3. [x] Modify frontend/code-scanner.js - Add folder scanning logic using webkitdirectory and File API
-4. [x] Test the implementation
+### TODO List:
 
-## Changes:
+#### Phase 1: Backend Improvements
 
-- Added a new "FOLDER_SCAN" tab for folder upload
-- Use `<input type="file" webkitdirectory>` to allow folder selection
-- Recursively scan all .js files in the selected folder
-- Display detailed analysis results with errors, warnings, fixes
-- Keep existing single file and project scan functionality working
+- [x] 1. Add JWT authentication with token generation
+- [x] 2. Remove duplicate routes (keep /api/\* only)
+- [x] 3. Add input validation on registration
+- [x] 4. Add rate limiting middleware
+- [x] 5. Add security headers (helmet)
+- [x] 6. Fix password reset token issues
 
-## Features Implemented:
+#### Phase 2: Frontend Bug Fixes
 
-1. **Single File Scan** - Upload single .js file for analysis (existing)
-2. **Folder Scan (NEW)** - Upload entire folder, scans all .js files recursively with detailed results showing:
-   - Errors (critical, warning, info)
-   - How to fix each issue
-   - Code snippets with fixes
-3. **Project Scan** - Server-side scan of Backend + Frontend directories (existing)
+- [x] 7. Fix register.js to use correct API endpoint
+- [x] 8. Add JWT token handling in login
+- [x] 9. Add session validation on dashboard
+- [x] 10. Add proper error handling
+
+#### Phase 3: Testing
+
+- [ ] 11. Test authentication flow
+- [ ] 12. Verify all endpoints work correctly
+
+---
+
+## Changes Made:
+
+### Backend (server.js)
+
+- Added JWT authentication with jsonwebtoken package
+- Added rate limiting with express-rate-limit
+- Added security headers with helmet.js
+- Added input validation for registration (email format, password length, username length)
+- Consolidated auth routes to use /api/\* prefix only
+- Added password validation on reset
+- Created protected /api/dashboard endpoint with JWT middleware
+
+### Frontend (dashboard.js)
+
+- Added JWT token validation on page load
+- Added getAuthHeader() helper function
+- Added token validation (redirects to login if missing)
+- Fixed logout to clear both user and token
+- Added proper error handling for 401/403 responses
+
+### Dependencies Installed
+
+- jsonwebtoken
+- express-rate-limit
+- helmet
+
+---
+
+## Previous Tasks (Completed)
+
+- [x] Frontend Redesign - Modern dark theme with glassmorphism

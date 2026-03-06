@@ -1116,24 +1116,18 @@ class CodeScanner {
   }
 }
 
-// DOM Elements
-const scanStatus = document.getElementById("scan-status");
-const resultPanel = document.getElementById("result-panel");
-const scanResultText = document.getElementById("scan-result-text");
-const scanResultContainer = document.getElementById("scan-result-container");
-const resetBtn = document.getElementById("reset-scanner-btn");
-const copyBtn = document.getElementById("copy-btn");
-const tabCamera = document.getElementById("tab-camera");
-const tabImage = document.getElementById("tab-image");
-const cameraView = document.getElementById("camera-view");
-const fileView = document.getElementById("file-view");
-const qrInputFile = document.getElementById("qr-input-file");
-const fileError = document.getElementById("file-error");
-
 // Scanner instance
 const codeScanner = new CodeScanner();
 
-// Handle File Scan
+// DOM Elements
+const scanStatus = document.getElementById("scan-status");
+const resultPanel = document.getElementById("result-panel");
+const resetBtn = document.getElementById("reset-scanner-btn");
+const copyBtn = document.getElementById("copy-btn");
+const qrInputFile = document.getElementById("qr-input-file");
+const fileError = document.getElementById("file-error");
+
+// Handle File Upload
 qrInputFile.addEventListener("change", async (e) => {
   if (e.target.files.length === 0) return;
 
@@ -1143,49 +1137,58 @@ qrInputFile.addEventListener("change", async (e) => {
   if (!file.name.endsWith(".js")) {
     fileError.textContent =
       "Please upload a JavaScript (.js) file for analysis";
+    fileError.classList.remove("hidden");
     return;
   }
 
-  fileError.textContent = "Analyzing code...";
-  fileError.className = "text-xs text-cyan animate-pulse mt-4";
+  fileError.classList.add("hidden");
+  scanStatus.textContent = "Analyzing code...";
+  scanStatus.classList.remove("hidden");
 
   try {
     const code = await file.text();
     const result = await codeScanner.analyzeCode(code, file.name);
     displayResults(result);
-    fileError.textContent = "";
   } catch (err) {
     console.error("Code analysis error", err);
     fileError.textContent = "Error analyzing code: " + err.message;
-    fileError.className = "text-xs text-red-500 mt-4";
+    fileError.classList.remove("hidden");
   }
 });
 
+// Display results in the new HTML structure
 function displayResults(result) {
+  const resultSummary = document.getElementById("result-summary");
+  const issuesList = document.getElementById("issues-list");
+
   if (result.issues.length === 0) {
-    scanResultContainer.innerHTML = `
-      <div class="text-center py-8">
-        <div class="text-green-500 text-5xl mb-4">✓</div>
-        <h3 class="text-xl font-bold text-green-500 mb-2">NO ISSUES FOUND</h3>
-        <p class="text-gray-400">Your code looks clean!</p>
-        <div class="mt-4 text-sm text-gray-500">
-          <p>File: ${result.filename}</p>
-          <p>Lines analyzed: ${result.stats.total}</p>
-        </div>
-      </div>
-    `;
+    resultSummary.innerHTML = `
+            <div class="text-center py-8">
+                <div class="text-green-500 text-5xl mb-4">✓</div>
+                <h3 class="text-2xl font-bold text-green-500 mb-2">NO ISSUES FOUND</h3>
+                <p class="text-gray-400">Your code looks clean!</p>
+                <div class="mt-4 text-sm text-gray-500">
+                    <p>File: ${result.filename}</p>
+                </div>
+            </div>
+        `;
+    issuesList.innerHTML = "";
   } else {
-    let issuesHTML = `
-      <div class="mb-4">
-        <h3 class="text-xl font-bold text-cyan mb-2">ANALYSIS RESULTS</h3>
-        <div class="flex gap-4 text-sm">
-          <span class="text-red-500">Critical: ${result.stats.critical}</span>
-          <span class="text-yellow-500">Warnings: ${result.stats.warning}</span>
-          <span class="text-blue-500">Info: ${result.stats.info}</span>
-        </div>
-      </div>
-      <div class="space-y-3">
-    `;
+    // Summary
+    resultSummary.innerHTML = `
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-white">Analysis Results</h3>
+                <div class="text-sm">
+                    <span class="text-gray-400">File: </span>
+                    <span class="text-accent font-mono">${result.filename}</span>
+                </div>
+            </div>
+            <div class="flex gap-4 text-sm mb-4">
+                <span class="px-3 py-1 bg-red-500/20 text-red-500 rounded-full">Critical: ${result.stats.critical}</span>
+                <span class="px-3 py-1 bg-yellow-500/20 text-yellow-500 rounded-full">Warnings: ${result.stats.warning}</span>
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-500 rounded-full">Info: ${result.stats.info}</span>
+            </div>
+        `;
 
     // Sort by severity
     const severityOrder = { critical: 0, warning: 1, info: 2 };
@@ -1193,309 +1196,75 @@ function displayResults(result) {
       (a, b) => severityOrder[a.severity] - severityOrder[b.severity],
     );
 
-    sortedIssues.forEach((issue, index) => {
-      const severityColors = {
-        critical: "border-red-500 bg-red-500/10",
-        warning: "border-yellow-500 bg-yellow-500/10",
-        info: "border-blue-500 bg-blue-500/10",
+    let issuesHTML = "";
+    sortedIssues.forEach((issue) => {
+      const severityClasses = {
+        critical: "issue-critical",
+        warning: "issue-warning",
+        info: "issue-info",
       };
-
-      const severityTextColors = {
+      const severityColors = {
         critical: "text-red-500",
         warning: "text-yellow-500",
         info: "text-blue-500",
       };
+      const typeLabels = {
+        syntax: "Syntax",
+        async: "Async",
+        undefined: "Undefined Variable",
+        bug: "Bug",
+        security: "Security",
+        smell: "Code Smell",
+        "best-practice": "Best Practice",
+      };
 
       issuesHTML += `
-        <div class="border-l-4 ${severityColors[issue.severity]} p-3 rounded">
-          <div class="flex justify-between items-start mb-1">
-            <span class="${severityTextColors[issue.severity]} font-bold text-sm uppercase">[${issue.severity}]</span>
-            <span class="text-gray-500 text-xs">Line ${issue.line}</span>
-          </div>
-          <p class="text-gray-300 text-sm mb-2">${issue.message}</p>
-          <div class="bg-gray-900 p-2 rounded text-xs font-mono text-gray-400 overflow-x-auto">
-            <pre class="whitespace-pre-wrap">${issue.code || "(see line " + issue.line + ")"}</pre>
-          </div>
-          ${
-            issue.fix
-              ? `
-            <div class="mt-2 p-2 bg-green-500/10 border border-green-500/30 rounded">
-              <p class="text-green-400 text-xs font-bold mb-1">SUGGESTED FIX:</p>
-              <p class="text-gray-300 text-xs mb-1">${issue.fix.description}</p>
-              <pre class="text-green-300 text-xs font-mono mt-1">${issue.fix.code}</pre>
-            </div>
-          `
-              : ""
-          }
-        </div>
-      `;
+                <div class="${severityClasses[issue.severity]} p-4 rounded-lg">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="${severityColors[issue.severity]} font-bold text-sm uppercase">[${issue.severity}]</span>
+                            <span class="text-gray-500 text-xs">${typeLabels[issue.type] || issue.type}</span>
+                        </div>
+                        <span class="text-gray-500 text-xs">Line ${issue.line}</span>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-2">${issue.message}</p>
+                    <div class="bg-black/40 p-2 rounded text-xs font-mono text-gray-400 overflow-x-auto">
+                        <pre class="whitespace-pre-wrap">${issue.code || "(see line " + issue.line + ")"}</pre>
+                    </div>
+                    ${
+                      issue.fix
+                        ? `
+                        <div class="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded">
+                            <p class="text-green-400 text-xs font-bold mb-1">🔧 SUGGESTED FIX:</p>
+                            <p class="text-gray-300 text-xs mb-2">${issue.fix.description}</p>
+                            <pre class="text-green-300 text-xs font-mono mt-1 bg-black/50 p-2 rounded">${issue.fix.code}</pre>
+                        </div>
+                    `
+                        : ""
+                    }
+                </div>
+            `;
     });
 
-    issuesHTML += "</div>";
-    scanResultContainer.innerHTML = issuesHTML;
+    issuesList.innerHTML = issuesHTML;
   }
 
   resultPanel.classList.remove("hidden");
   scanStatus.textContent = "ANALYSIS_COMPLETE";
-  scanStatus.className = "text-xs text-green-500 font-bold";
+  scanStatus.className = "text-sm text-green-500 font-bold";
 }
 
-// Folder scan variables
-let selectedFolderFiles = [];
-const folderInput = document.getElementById("folder-input");
-const folderFilesList = document.getElementById("folder-files-list");
-const folderFilesContainer = document.getElementById("folder-files-container");
-const scanFolderBtn = document.getElementById("scan-folder-btn");
-const folderError = document.getElementById("folder-error");
-const folderDropZone = document.getElementById("folder-drop-zone");
-const tabFolder = document.getElementById("tab-folder");
-const folderView = document.getElementById("folder-view");
-
-// Handle folder selection
-folderInput.addEventListener("change", async (e) => {
-  if (e.target.files.length === 0) return;
-
-  selectedFolderFiles = [];
-  const files = Array.from(e.target.files);
-
-  // Filter only JavaScript files
-  const jsFiles = files.filter((file) => file.name.endsWith(".js"));
-
-  if (jsFiles.length === 0) {
-    folderError.textContent =
-      "No JavaScript files found in the selected folder";
-    folderError.className = "text-xs text-red-500 mt-4";
-    return;
-  }
-
-  // Store the files and their paths
-  selectedFolderFiles = jsFiles.map((file) => ({
-    file: file,
-    relativePath: file.webkitRelativePath || file.name,
-  }));
-
-  // Display the files list
-  folderFilesContainer.innerHTML = selectedFolderFiles
-    .map((f) => `<div class="text-gray-400 py-1">📄 ${f.relativePath}</div>`)
-    .join("");
-
-  folderFilesList.classList.remove("hidden");
-  scanFolderBtn.classList.remove("hidden");
-  folderError.textContent = `${selectedFolderFiles.length} JavaScript file(s) ready to scan`;
-  folderError.className = "text-xs text-green-500 mt-4";
-});
-
-// Handle folder scan button
-scanFolderBtn.addEventListener("click", async () => {
-  if (selectedFolderFiles.length === 0) return;
-
-  scanStatus.textContent = "SCANNING_FOLDER...";
-  scanStatus.className = "text-xs text-yellow-500 font-bold animate-pulse";
-  folderError.textContent = "Analyzing files...";
-  folderError.className = "text-xs text-cyan animate-pulse mt-4";
-  scanFolderBtn.disabled = true;
-  scanFolderBtn.classList.add("opacity-50");
-
-  try {
-    // Analyze each file
-    const results = [];
-
-    for (const fileObj of selectedFolderFiles) {
-      try {
-        const code = await fileObj.file.text();
-        const result = await codeScanner.analyzeCode(
-          code,
-          fileObj.relativePath,
-        );
-        if (result.issues.length > 0) {
-          results.push(result);
-        }
-      } catch (err) {
-        console.error(`Error scanning ${fileObj.relativePath}:`, err);
-      }
-    }
-
-    // Display results
-    displayFolderResults(results);
-
-    scanStatus.textContent = "SCAN_COMPLETE";
-    scanStatus.className = "text-xs text-green-500 font-bold";
-    folderError.textContent = "";
-  } catch (err) {
-    console.error("Folder scan error:", err);
-    folderError.textContent = "Error scanning folder: " + err.message;
-    folderError.className = "text-xs text-red-500 mt-4";
-    scanStatus.textContent = "SCAN_FAILED";
-    scanStatus.className = "text-xs text-red-500 font-bold";
-  }
-
-  scanFolderBtn.disabled = false;
-  scanFolderBtn.classList.remove("opacity-50");
-});
-
-// Display folder scan results
-function displayFolderResults(results) {
-  if (results.length === 0) {
-    scanResultContainer.innerHTML = `
-      <div class="text-center py-8">
-        <div class="text-green-500 text-5xl mb-4">✓</div>
-        <h3 class="text-xl font-bold text-green-500 mb-2">NO ISSUES FOUND</h3>
-        <p class="text-gray-400">All scanned files look clean!</p>
-        <div class="mt-4 text-sm text-gray-500">
-          <p>Files scanned: ${selectedFolderFiles.length}</p>
-        </div>
-      </div>
-    `;
-  } else {
-    // Calculate totals
-    const totalCritical = results.reduce((sum, f) => sum + f.stats.critical, 0);
-    const totalWarnings = results.reduce((sum, f) => sum + f.stats.warning, 0);
-    const totalInfo = results.reduce((sum, f) => sum + f.stats.info, 0);
-
-    let issuesHTML = `
-      <div class="mb-4">
-        <h3 class="text-2xl font-bold text-cyan mb-2">FOLDER SCAN COMPLETE</h3>
-        <div class="flex flex-wrap gap-4 text-sm mb-4">
-          <span class="text-gray-400">Files scanned: ${selectedFolderFiles.length}</span>
-          <span class="text-red-500">Critical: ${totalCritical}</span>
-          <span class="text-yellow-500">Warnings: ${totalWarnings}</span>
-          <span class="text-blue-500">Info: ${totalInfo}</span>
-        </div>
-      </div>
-      <div class="space-y-4">
-    `;
-
-    // Sort by severity
-    const severityOrder = { critical: 0, warning: 1, info: 2 };
-    const sortedFiles = [...results].sort((a, b) => {
-      const aMax = Math.min(
-        ...a.issues.map((i) => severityOrder[i.severity] || 2),
-      );
-      const bMax = Math.min(
-        ...b.issues.map((i) => severityOrder[i.severity] || 2),
-      );
-      return aMax - bMax;
-    });
-
-    sortedFiles.forEach((file) => {
-      const critical = file.issues.filter(
-        (i) => i.severity === "critical",
-      ).length;
-      const warning = file.issues.filter(
-        (i) => i.severity === "warning",
-      ).length;
-      const info = file.issues.filter((i) => i.severity === "info").length;
-
-      issuesHTML += `
-        <div class="border border-gray-700 rounded-lg p-4 bg-gray-900/50">
-          <div class="flex justify-between items-start mb-3">
-            <h4 class="text-white font-bold text-sm">📁 ${file.filename}</h4>
-            <div class="flex gap-2 text-xs">
-              ${critical > 0 ? `<span class="text-red-500">${critical} critical</span>` : ""}
-              ${warning > 0 ? `<span class="text-yellow-500">${warning} warning</span>` : ""}
-              ${info > 0 ? `<span class="text-blue-500">${info} info</span>` : ""}
-            </div>
-          </div>
-          <div class="space-y-3">
-      `;
-
-      // Sort issues by severity
-      const sortedIssues = [...file.issues].sort(
-        (a, b) => severityOrder[a.severity] - severityOrder[b.severity],
-      );
-
-      sortedIssues.forEach((issue) => {
-        const severityColors = {
-          critical: "border-red-500 bg-red-500/10",
-          warning: "border-yellow-500 bg-yellow-500/10",
-          info: "border-blue-500 bg-blue-500/10",
-        };
-
-        const severityTextColors = {
-          critical: "text-red-500",
-          warning: "text-yellow-500",
-          info: "text-blue-500",
-        };
-
-        issuesHTML += `
-          <div class="border-l-4 ${severityColors[issue.severity]} p-3 rounded">
-            <div class="flex justify-between items-start mb-1">
-              <span class="${severityTextColors[issue.severity]} font-bold text-sm uppercase">[${issue.severity}]</span>
-              <span class="text-gray-500 text-xs">Line ${issue.line}</span>
-            </div>
-            <p class="text-gray-300 text-sm mb-2">${issue.message}</p>
-            <div class="bg-gray-900 p-2 rounded text-xs font-mono text-gray-400 overflow-x-auto">
-              <pre class="whitespace-pre-wrap">${issue.code || "(see line " + issue.line + ")"}</pre>
-            </div>
-            ${
-              issue.fix
-                ? `
-              <div class="mt-2 p-2 bg-green-500/10 border border-green-500/30 rounded">
-                <p class="text-green-400 text-xs font-bold mb-1">SUGGESTED FIX:</p>
-                <p class="text-gray-300 text-xs mb-1">${issue.fix.description}</p>
-                <pre class="text-green-300 text-xs font-mono mt-1">${issue.fix.code}</pre>
-              </div>
-            `
-                : ""
-            }
-          </div>
-        `;
-      });
-
-      issuesHTML += `</div></div>`;
-    });
-
-    issuesHTML += "</div>";
-    scanResultContainer.innerHTML = issuesHTML;
-  }
-
-  resultPanel.classList.remove("hidden");
-}
-
-// Tab Switching logic - now for different scan modes
-function switchTab(mode) {
-  resultPanel.classList.add("hidden");
-  fileError.textContent = "";
-  folderError.textContent = "";
-
-  // Reset folder selection
-  selectedFolderFiles = [];
-  folderFilesList.classList.add("hidden");
-  scanFolderBtn.classList.add("hidden");
-  folderInput.value = "";
-
-  if (mode === "camera") {
-    // Single file mode
-    tabCamera.classList.add("active");
-    tabFolder.classList.remove("active");
-    folderView.classList.add("hidden");
-    cameraView.classList.remove("hidden");
-    scanStatus.textContent = "UPLOAD_JS_FILE";
-  } else if (mode === "folder") {
-    // Folder scan mode
-    tabCamera.classList.remove("active");
-    tabFolder.classList.add("active");
-    cameraView.classList.add("hidden");
-    folderView.classList.remove("hidden");
-    scanStatus.textContent = "UPLOAD_FOLDER";
-  }
-}
-
-// Event Listeners
-tabCamera.addEventListener("click", () => switchTab("camera"));
-tabFolder.addEventListener("click", () => switchTab("folder"));
-
+// Reset button
 resetBtn.addEventListener("click", () => {
   resultPanel.classList.add("hidden");
   qrInputFile.value = "";
-  fileError.textContent = "";
-  scanStatus.textContent = "UPLOAD_JS_FILE";
-  scanStatus.className = "text-xs text-cyan animate-pulse";
+  scanStatus.textContent = "Upload a JavaScript file to analyze";
+  scanStatus.className = "text-sm text-gray-500";
 });
 
+// Copy button
 copyBtn.addEventListener("click", () => {
-  const textToCopy =
-    scanResultContainer.innerText || scanResultContainer.textContent;
+  const textToCopy = resultPanel.innerText || resultPanel.textContent;
   navigator.clipboard.writeText(textToCopy).then(() => {
     const originalText = copyBtn.textContent;
     copyBtn.textContent = "COPIED!";
@@ -1507,5 +1276,6 @@ copyBtn.addEventListener("click", () => {
 
 // Initialize on Load
 document.addEventListener("DOMContentLoaded", () => {
-  scanStatus.textContent = "UPLOAD_JS_FILE";
+  scanStatus.textContent = "Upload a JavaScript file to analyze";
+  scanStatus.classList.remove("hidden");
 });
