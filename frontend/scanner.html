@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Scanner - DEEPFAKE DETECTOR</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            black: '#0a0a0a',
+            cyan: '#00ffff',
+            darkgray: '#1a1a1a'
+          },
+          fontFamily: {
+            mono: ['"Courier New"', 'Courier', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- HTML5-QRCode Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background-color: #050505;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .scanner-container {
+      border: 2px solid #333;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      min-height: 300px;
+    }
+
+    /* Grid overlay for "tech" feel */
+    .grid-bg {
+      background-image: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .tab-btn.active {
+      background-color: rgba(0, 255, 255, 0.1);
+      border-color: #00ffff;
+      color: #00ffff;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col grid-bg">
+
+  <div data-include="header"></div>
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-black/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <a href="vastav.html" class="text-cyan hover:text-white transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </a>
+        <h1 class="text-xl font-bold tracking-wider text-white">CODE_SCANNER_MODULE</h1>
+      </div>
+      <div class="text-xs text-cyan font-mono animate-pulse">SYSTEM_ACTIVE</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center justify-center">
+
+    <!-- Tabs -->
+    <div class="flex space-x-4 mb-4">
+      <button id="tab-camera"
+        class="tab-btn active border border-gray-700 px-4 py-2 rounded text-xs font-bold hover:bg-gray-800 transition-all flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        LIVE_CAMERA
+      </button>
+      <button id="tab-image"
+        class="tab-btn border border-gray-700 px-4 py-2 rounded text-xs font-bold hover:bg-gray-800 transition-all flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        IMAGE_FILE
+      </button>
+    </div>
+
+    <!-- Scanner Box -->
+    <div
+      class="w-full max-w-md bg-darkgray border border-gray-700 rounded-lg p-1 shadow-2xl relative min-h-[350px] flex flex-col">
+      <!-- Decorative Corners -->
+      <div class="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-cyan -mt-1 -ml-1 z-20"></div>
+      <div class="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-cyan -mt-1 -mr-1 z-20"></div>
+      <div class="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-cyan -mb-1 -ml-1 z-20"></div>
+      <div class="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-cyan -mb-1 -mr-1 z-20"></div>
+
+      <!-- View: Camera -->
+      <div id="camera-view" class="flex-grow flex flex-col">
+        <div id="reader" class="scanner-container w-full flex-grow bg-black rounded relative"></div>
+        <div class="p-2 text-center">
+          <div id="scan-status" class="text-xs text-cyan animate-pulse">INITIALIZING_CAMERA...</div>
+        </div>
+      </div>
+
+      <!-- View: File Upload -->
+      <div id="file-view" class="flex-grow hidden flex-col items-center justify-center p-6">
+        <div
+          class="w-full border-2 border-dashed border-gray-600 rounded-lg p-8 flex flex-col items-center justify-center hover:border-cyan hover:bg-cyan/5 transition-all cursor-pointer relative"
+          id="drop-zone">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p class="text-sm text-gray-300 font-bold mb-1">Upload QR / Barcode Image</p>
+          <p class="text-xs text-gray-500">Supports JPG, PNG, WEBP</p>
+          <input type="file" id="qr-input-file" accept="image/*"
+            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+        </div>
+        <div class="text-xs text-red-500 mt-4 h-4" id="file-error"></div>
+      </div>
+
+    </div>
+
+    <!-- Result Area -->
+    <div id="result-panel" class="w-full max-w-md mt-6 hidden">
+      <div class="bg-black border border-green-500/50 rounded-lg p-4 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+        <h3 class="text-green-500 font-bold mb-2 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          SCAN_SUCCESSFUL
+        </h3>
+        <div class="bg-gray-900 p-3 rounded border border-gray-800 font-mono text-sm break-all text-gray-300"
+          id="scan-result-container">
+          <span id="scan-result-text"></span>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button id="copy-btn"
+            class="text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 py-1 rounded transition-colors mr-2">
+            COPY
+          </button>
+          <button id="reset-scanner-btn"
+            class="text-xs bg-cyan/10 hover:bg-cyan/20 text-cyan border border-cyan/50 px-3 py-1 rounded transition-colors">
+            SCAN_AGAIN
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-gray-800 bg-black py-4 mt-auto">
+    <div class="container mx-auto px-4 text-center text-xs text-gray-600 font-mono">
+      SECURE_ID_SYSTEMS_V2.0 // ENCRYPTED_CONNECTION
+    </div>
+  </footer>
+
+  <script src="scanner.js"></script>
+  <div data-include="footer"></div>
+  <script src="inject-components.js"></script>
+</body>
+
+</html>

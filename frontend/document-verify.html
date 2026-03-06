@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Verification - DEEPFAKE DETECTOR</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            black: '#0a0a0a',
+            cyan: '#00ffff',
+            darkgray: '#1a1a1a'
+          },
+          fontFamily: {
+            mono: ['"Courier New"', 'Courier', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #050505;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .drop-zone {
+      border: 2px dashed #444;
+      transition: all 0.3s ease;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: #00ffff;
+      background: rgba(0, 255, 255, 0.05);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col grid-bg">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-black/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <a href="vastav.html" class="text-cyan hover:text-white transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </a>
+        <h1 class="text-xl font-bold tracking-wider text-white">DOC_VERIFICATION_UNIT</h1>
+      </div>
+      <div class="text-xs text-yellow-500 font-mono">ENHANCED_SECURITY_PROTOCOL</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
+
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold text-white mb-2">IDENTITY DOCUMENT ANALYSIS</h2>
+      <p class="text-gray-400 text-sm">Upload Passport, ID Card, or Driver's License for forensic verification.</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div id="upload-section" class="w-full max-w-2xl">
+      <div id="drop-zone"
+        class="drop-zone rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer bg-darkgray">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <div class="text-center">
+          <p class="text-lg text-gray-300 font-bold mb-1">Drag & Drop Document</p>
+          <p class="text-xs text-gray-500 mb-4">Support: PDF, JPG, PNG (Max 10MB)</p>
+          <label for="file-input"
+            class="bg-cyan/10 hover:bg-cyan/20 text-cyan border border-cyan/50 px-6 py-2 rounded transition-colors cursor-pointer">
+            BROWSE FILES
+          </label>
+          <input type="file" id="file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis Loader (Hidden) -->
+    <div id="loader-section" class="w-full max-w-2xl hidden flex flex-col items-center">
+      <div class="w-16 h-16 border-4 border-cyan border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-cyan font-mono animate-pulse">PERFORMING OPTICAL CHARACTER RECOGNITION...</p>
+      <p class="text-xs text-gray-500 mt-2">Checking Holograms / Validating Checksums / Analysing Metadata</p>
+    </div>
+
+    <!-- Results Section (Hidden) -->
+    <div id="results-section" class="w-full max-w-3xl hidden">
+      <div class="bg-darkgray border border-gray-700 rounded-lg overflow-hidden shadow-2xl">
+        <!-- Header -->
+        <div class="bg-black/50 p-4 border-b border-gray-700 flex justify-between items-center">
+          <h3 class="font-bold text-white">ANALYSIS REPORT</h3>
+          <span id="doc-status"
+            class="px-2 py-1 bg-green-900/30 text-green-400 border border-green-500/50 rounded text-xs">VERIFIED_AUTHENTIC</span>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Document Preview -->
+          <div>
+            <h4 class="text-xs text-gray-500 mb-2 uppercase">Document Preview</h4>
+            <div id="doc-preview"
+              class="w-full h-48 bg-black rounded border border-gray-800 flex items-center justify-center overflow-hidden">
+              <!-- Img inserted via JS -->
+            </div>
+          </div>
+
+          <!-- Details -->
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-xs text-gray-500 mb-1 uppercase">Extracted Data</h4>
+              <div class="bg-black/30 p-2 rounded text-sm text-gray-300 font-mono">
+                <p>NAME: <span id="res-name">JOHN DOE</span></p>
+                <p>DOC ID: <span id="res-id">A12345678</span></p>
+                <p>EXPIRY: <span id="res-expiry">2030-01-01</span></p>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs text-gray-500 mb-1 uppercase">Forensic Checks</h4>
+              <ul class="space-y-1 text-xs">
+                <li class="flex justify-between">
+                  <span class="text-gray-400">Hologram Integrity</span>
+                  <span class="text-green-500">PASS</span>
+                </li>
+                <li class="flex justify-between">
+                  <span class="text-gray-400">Font Consistency</span>
+                  <span class="text-green-500">PASS</span>
+                </li>
+                <li class="flex justify-between">
+                  <span class="text-gray-400">EXIF Metadata</span>
+                  <span class="text-yellow-500">WARNING (Missing)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Summary Section -->
+        <div class="bg-black/50 p-6 border-t border-gray-700">
+          <h4 class="text-xs font-bold text-cyan uppercase mb-2">INTELLIGENCE_SUMMARY & CONCLUSION:</h4>
+          <div class="bg-gray-900/50 p-4 rounded border border-gray-800">
+            <p id="doc-summary-text" class="text-gray-300 text-sm leading-relaxed font-mono">
+              Thinking...
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-black/50 p-4 border-t border-gray-700 text-center">
+          <button id="reset-btn" class="text-xs text-cyan hover:underline">ANALYZE ANOTHER DOCUMENT</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-gray-800 bg-black py-4 mt-auto">
+    <div class="container mx-auto px-4 text-center text-xs text-gray-600 font-mono">
+      SECURE_ID_SYSTEMS_V2.0 // DOC_VERIFY_UNIT
+    </div>
+  </footer>
+
+  <script src="document.js"></script>
+</body>
+
+</html>

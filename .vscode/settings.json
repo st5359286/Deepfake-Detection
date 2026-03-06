@@ -1,0 +1,17 @@
+{
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsdk": null,
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/node_modules": true
+  }
+}
+{
+  "python.testing.pytestArgs": [
+    "frontend"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}
