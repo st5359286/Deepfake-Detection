@@ -1,10 +1,13 @@
 // Configuration for Deepfake Detector
-// For production, set API_URL to your deployed backend URL
+// Uses global config object for all pages.
 const API_URL = "http://localhost:3000";
 
-// Make config globally available
-window.config = {
-  API_URL: API_URL,
+const config = {
+  API_URL,
 };
 
-console.log("Config loaded:", window.config.API_URL);
+if (typeof window !== 'undefined') {
+  window.config = config;
+}
+
+console.log("Config loaded:", config.API_URL);

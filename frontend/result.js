@@ -1,5 +1,5 @@
 
-import config from './config.js';
+const config = window.config || { API_URL: 'http://localhost:3000' };
 
 // DOM Elements
 const verdictText = document.getElementById('verdictText');

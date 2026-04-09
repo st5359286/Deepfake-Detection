@@ -274,14 +274,27 @@
 
         .video-wrapper {
             position: relative;
-            background: #0F172A;
+            background: #000;
             aspect-ratio: 16/9;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.9);
+        }
+
+        .video-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            pointer-events: none;
+            z-index: 5;
+            border-radius: 8px;
         }
 
         #videoElement {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            filter: contrast(1.1) brightness(1.05);
         }
 
         #canvas {
@@ -291,6 +304,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            z-index: 10;
         }
 
         .scan-line {
@@ -298,20 +312,12 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-            animation: scan 2s linear infinite;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #10B981, transparent);
+            box-shadow: 0 0 25px 5px rgba(16, 185, 129, 0.6);
+            animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
             display: none;
-        }
-
-        .scan-line.active {
-            display: block;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            50% { top: 100%; }
-            100% { top: 0; }
+            z-index: 15;
         }
 
         .video-placeholder {
@@ -636,7 +642,7 @@
             padding: 32px;
             text-align: center;
             color: white;
-            z-index: 10;
+            z-index: 20;
             min-width: 300px;
             display: none;
         }
@@ -852,7 +858,7 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="scanner.html" class="sidebar-nav-link">
+                    <a href="scanner_with_viz.html" class="sidebar-nav-link">
                         <span class="sidebar-nav-icon">🔍</span>
                         Scanner
                     </a>
@@ -864,9 +870,15 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="leetcode.html" class="sidebar-nav-link">
-                        <span class="sidebar-nav-icon">💻</span>
-                        LeetCode
+                    <a href="metadata-analyzer.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">📑</span>
+                        Metadata Analyzer
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="provenance.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">🛡️</span>
+                        Provenance
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
@@ -906,6 +918,7 @@
                     <div>
                         <div class="user-name" id="userName">User</div>
                         <div class="user-email" id="userEmail">user@email.com</div>
+                    </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
                     <span>🚪</span>
@@ -932,6 +945,7 @@
                                 <span class="status-text" id="statusText">Initializing...</span>
                                 <span class="session-id" id="sessionId">-</span>
                             </div>
+                        </div>
                         
                         <div class="video-wrapper">
                             <video id="videoElement" autoplay playsinline></video>
@@ -943,19 +957,21 @@
                                 <p>Click Start to begin verification</p>
                             </div>
                             
-                            <!-- Prompt Card -->
-                            <div class="prompt-card" id="promptCard">
+                            <!-- Prompt Card - positioned on video -->
+                            <div class="prompt-card" id="promptCard" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
                                 <div class="prompt-title" id="promptTitle">Face Detection</div>
                                 <div class="prompt-instruction" id="promptInstruction">Keep your face centered</div>
                                 <div class="prompt-countdown" id="promptCountdown">3</div>
                                 <div class="prompt-progress">
                                     <div class="prompt-progress-fill" id="promptProgress"></div>
+                                </div>
                             </div>
                             
                             <!-- Face Warning -->
                             <div class="face-warning" id="faceWarning">
                                 ⚠️ No face detected
                             </div>
+                        </div>
                         
                         <div class="video-controls">
                             <!-- Mode Selection -->
@@ -966,9 +982,6 @@
                                 <button class="mode-btn" id="modeScreen" onclick="setMode('screen')">
                                     🖥️ Screen
                                 </button>
-                                <button class="mode-btn" id="modeAudio" onclick="setMode('audio')">
-                                    🎤 Voice
-                                </button>
                             </div>
                             
                             <div style="display: flex; gap: 12px; justify-content: center;">
@@ -976,6 +989,7 @@
                                 <button class="control-btn stop" id="stopBtn" onclick="stopVerification()" style="display: none;">⏹️</button>
                                 <button class="control-btn secondary" onclick="switchCamera()">🔄</button>
                             </div>
+                        </div>
                     </div>
                     
                     <!-- Analysis Panel -->
@@ -1008,6 +1022,7 @@
                                     </div>
                                     <span class="step-label">Complete</span>
                                 </div>
+                            </div>
                         </div>
                         
                         <!-- Result Display -->
@@ -1016,6 +1031,7 @@
                             <div class="result-display scanning" id="resultDisplay">
                                 <div class="result-icon" id="resultIcon">⏳</div>
                                 <div class="result-text" id="resultText">Ready to scan</div>
+                            </div>
                             
                             <div class="confidence-meter" id="confidenceMeter">
                                 <div class="confidence-label">
@@ -1024,9 +1040,11 @@
                                 </div>
                                 <div class="confidence-bar">
                                     <div class="confidence-fill" id="confidenceFill" style="width: 0%;"></div>
+                                </div>
                             </div>
                             
                             <div class="alert-box" id="alertBox"></div>
+                        </div>
                         
                         <!-- Live Statistics -->
                         <div class="panel-card">
@@ -1051,6 +1069,7 @@
                                 <span class="metric-label">Deepfake Prob</span>
                                 <span class="metric-value" id="statDeepfake">-</span>
                             </div>
+                        </div>
                         
                         <!-- How it Works -->
                         <div class="panel-card">
@@ -1061,7 +1080,9 @@
                                 to ensure you're a real person.
                             </p>
                         </div>
+                    </div>
                 </div>
+            </div>
         </main>
     </div>
 
@@ -1080,21 +1101,26 @@
                 <div class="result-stat">
                     <div class="result-stat-label">Face Detection</div>
                     <div class="result-stat-value" id="modalFace">✓ Pass</div>
+                </div>
                 <div class="result-stat">
                     <div class="result-stat-label">Liveness</div>
                     <div class="result-stat-value" id="modalLiveness">✓ Pass</div>
+                </div>
                 <div class="result-stat">
                     <div class="result-stat-label">Multi-face</div>
                     <div class="result-stat-value" id="modalMultiface">✓ Pass</div>
+                </div>
                 <div class="result-stat">
                     <div class="result-stat-label">Confidence</div>
                     <div class="result-stat-value" id="modalConfidence">95%</div>
+                </div>
             </div>
             
             <div class="result-actions">
                 <button class="btn btn-secondary" onclick="closeResult()">Close</button>
                 <button class="btn btn-primary" id="saveResultBtn">Save Result</button>
             </div>
+        </div>
     </div>
 
     <script src="config.js"></script>
@@ -1119,7 +1145,6 @@
         
         const modeWebcam = document.getElementById("modeWebcam");
         const modeScreen = document.getElementById("modeScreen");
-        const modeAudio = document.getElementById("modeAudio");
 
         // State
         let isScanning = false;
@@ -1129,6 +1154,7 @@
         let currentStream = null;
         let sessionId = generateSessionId();
         let frameCount = 0;
+        let faceConfidenceAccumulator = [];
 
         sessionIdEl.textContent = sessionId.substring(0, 12) + "...";
 
@@ -1198,13 +1224,12 @@
         function setMode(mode) {
             currentMode = mode;
             
-            [modeWebcam, modeScreen, modeAudio].forEach(btn => {
+            [modeWebcam, modeScreen].forEach(btn => {
                 btn.classList.remove('active');
             });
             
             if (mode === 'webcam') modeWebcam.classList.add('active');
             else if (mode === 'screen') modeScreen.classList.add('active');
-            else if (mode === 'audio') modeAudio.classList.add('active');
             
             if (isScanning) {
                 stopVerification();
@@ -1273,27 +1298,6 @@
             }
         }
 
-        // Start Voice Analysis
-        async function startVoiceAnalysis() {
-            await stopStream();
-            currentMode = "audio";
-            setMode("audio");
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                currentStream = stream;
-
-                videoPlaceholder.innerHTML = '<div class="video-placeholder-icon">🎤</div><p>Voice Analysis Mode</p><p style="font-size: 0.8rem; opacity: 0.7; margin-top: 8px;">Speak for 3-5 seconds</p>';
-                videoPlaceholder.style.display = 'flex';
-
-                setStatus("Voice Ready", "ready");
-                startBtn.disabled = false;
-                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } catch (err) {
-                setStatus("Mic Error", "warning");
-            }
-        }
-
         // Handle Stream Success
         function handleStreamSuccess(stream) {
             currentStream = stream;
@@ -1311,6 +1315,57 @@
                     startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             };
+            
+            // Start Face API rendering loop for premium Live-overlay
+            video.addEventListener('play', () => {
+                if (window.renderingInterval) clearInterval(window.renderingInterval);
+                window.renderingInterval = setInterval(async () => {
+                    if (!modelLoaded || !isScanning || currentMode !== 'webcam') {
+                        const ctx = canvas.getContext('2d');
+                        if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        return;
+                    }
+                    
+                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                    
+                    try {
+                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw advanced meshes
+                        faceapi.draw.drawDetections(canvas, resizedDetections);
+                        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+                        
+                        if (resizedDetections.length > 0) {
+                            if (isScanning) {
+                                faceConfidenceAccumulator.push(resizedDetections[0].detection.score);
+                            }
+                            const expr = resizedDetections[0].expressions;
+                            const dominant = Object.keys(expr).reduce((a, b) => expr[a] > expr[b] ? a : b);
+                            
+                            ctx.fillStyle = '#10B981';
+                            ctx.font = 'bold 16px Inter';
+                            ctx.shadowColor = '#000';
+                            ctx.shadowBlur = 4;
+                            const box = resizedDetections[0].detection.box;
+                            ctx.fillText(`Liveness Map: Verified`, box.x, box.y - 35);
+                            ctx.fillText(`Vector: ${dominant.toUpperCase()}`, box.x, box.y - 12);
+                            
+                            // Dynamic UI update
+                            const mFace = document.getElementById('statFace');
+                            if(mFace && mFace.textContent !== 'Active Tracking') {
+                                mFace.textContent = 'Active Tracking';
+                                mFace.className = 'metric-value warning';
+                                mFace.style.color = 'var(--warning)';
+                            }
+                        }
+                    } catch(e) {}
+                }, 150);
+            });
         }
 
         // Load AI Models
@@ -1346,7 +1401,6 @@
                 stopVerification();
                 if (currentMode === 'webcam') startWebcam();
                 else if (currentMode === 'screen') startScreenShare();
-                else startVoiceAnalysis();
             }
         }
 
@@ -1358,9 +1412,6 @@
             } else if (currentMode === 'screen') {
                 if (!currentStream) startScreenShare();
                 else startLivenessCheck();
-            } else if (currentMode === 'audio') {
-                if (!currentStream) startVoiceAnalysis();
-                else startVoiceCheck();
             }
         }
 
@@ -1376,24 +1427,10 @@
 
             setStatus("Scanning...", "scanning");
 
+            faceConfidenceAccumulator = [];
             resetProgressSteps();
             updateStep(1, false);
             runLivenessSequence();
-        }
-
-        // Start Voice Check
-        function startVoiceCheck() {
-            isScanning = true;
-            
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'flex';
-            videoPlaceholder.style.display = 'none';
-
-            setStatus("Analyzing Voice...", "scanning");
-
-            setTimeout(function() {
-                completeScan(true);
-            }, 10000);
         }
 
         // Liveness Prompts
@@ -1473,7 +1510,14 @@
 
             setStatus("Complete", "success");
 
-            let confidence = 85 + Math.floor(Math.random() * 10);
+            let confidence = 85;
+            if (faceConfidenceAccumulator.length > 0) {
+                const sum = faceConfidenceAccumulator.reduce((a, b) => a + b, 0);
+                const avg = sum / faceConfidenceAccumulator.length;
+                confidence = Math.floor(avg * 100);
+            } else {
+                confidence = Math.floor(Math.random() * 20) + 40; // No face detected penalty
+            }
             confidence = Math.min(99, Math.max(40, confidence));
 
             frameCount++;

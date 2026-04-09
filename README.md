@@ -41,6 +41,7 @@ Before you begin, ensure you have the following installed on your system:
 
 - Node.js (v18.x or later is recommended)
 - npm (comes with Node.js) or Yarn
+- Python 3.11 (required for backend Python API)
 - A running MySQL server instance.
 
 ## Installation & Setup
@@ -62,13 +63,22 @@ Follow these steps to get your development environment set up.
     cd Backend
     ```
 
-2.  **Install dependencies:**
+2.  **Install Node backend dependencies:**
 
     ```sh
     npm install
     ```
 
-3.  **Set up environment variables:**
+3.  **(Optional) Run Python backend (if using Python API)**
+
+    Install Python 3.11 and dependencies:
+    ```sh
+    python --version  # should print 3.11.x
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
+    ```
+
+4.  **Set up environment variables:**
 
     Create a `.env` file in the `Backend` directory and add your MySQL database credentials. You can use the `.env.example` file as a template:
 

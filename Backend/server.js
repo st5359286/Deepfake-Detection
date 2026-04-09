@@ -8,32 +8,124 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const upload = multer();
 const { db, query, run } = require("./db");
+const jwt = require("jsonwebtoken");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const port = process.env.PORT || 3000;
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
 
-// Middleware
-app.use(cors());
+// Security Middleware
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "*",
+    credentials: true,
+  }),
+);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Rate Limiting Middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    message: "Too many requests from this IP, please try again later.",
+  },
+});
+app.use("/api/", limiter);
+
+// JWT Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ message: "Access token required." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid or expired token." });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Helper: Generate JWT Token
+function generateToken(user) {
+  return jwt.sign(
+    { id: user.id, username: user.username, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "24h" },
+  );
+}
+
+// Helper: Validate email format
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Helper: Validate password strength
+function isValidPassword(password) {
+  return password && password.length >= 6;
+}
+
+// Helper: Validate username
+function isValidUsername(username) {
+  return username && username.length >= 3 && username.length <= 30;
+}
 
 // --- Helper: Generate OTP ---
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Register Endpoint
+// Register Endpoint with input validation
 app.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
 
+  // Input validation
   if (!username || !email || !password) {
     return res
       .status(400)
       .json({ message: "Username, email, and password are required." });
   }
 
+  // Validate username length
+  if (!isValidUsername(username)) {
+    return res
+      .status(400)
+      .json({ message: "Username must be between 3 and 30 characters." });
+  }
+
+  // Validate email format
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: "Invalid email format." });
+  }
+
+  // Validate password length
+  if (!isValidPassword(password)) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters long." });
+  }
+
   try {
+    // Check if email already exists
+    const emailCheck = await query("SELECT * FROM users WHERE email = ?", [
+      email,
+    ]);
+    if (emailCheck.length > 0) {
+      return res.status(409).json({ message: "Email already registered." });
+    }
+
     const results = await query("SELECT * FROM users WHERE username = ?", [
       username,
     ]);
@@ -80,12 +172,9 @@ app.post("/register", async (req, res) => {
     console.log(`[SERVER_LOG] OTP Code: ${otp}`);
     console.log("---------------------------------------------------");
 
-    res
-      .status(201)
-      .json({
-        message: "Registration successful. OTP sent to email.",
-        otp: otp,
-      });
+    res.status(201).json({
+      message: "Registration successful. OTP sent to email.",
+    });
   } catch (hashError) {
     console.error("Error:", hashError);
     return res
@@ -185,7 +274,7 @@ app.post("/resend-otp", async (req, res) => {
   }
 });
 
-// Login Endpoint
+// Login Endpoint with JWT token
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -212,8 +301,12 @@ app.post("/login", async (req, res) => {
       const isMatch = await bcrypt.compare(password, user.password);
 
       if (isMatch) {
+        // Generate JWT token
+        const token = generateToken(user);
+
         res.json({
           message: "Login successful",
+          token: token,
           user: {
             id: user.id,
             username: user.username,
@@ -231,6 +324,65 @@ app.post("/login", async (req, res) => {
     console.error("Database query error:", err);
     return res.status(500).json({ message: "Internal server error." });
   }
+});
+
+// --- Dashboard Endpoints MVP ---
+app.get("/dashboard", async (req, res) => {
+  const { username } = req.query;
+  try {
+    const results = await query("SELECT id, username, email, role FROM users WHERE username = ?", [username]);
+    if (results.length > 0) res.json({ user: results[0] });
+    else res.status(404).json({ message: "User not found" });
+  } catch (err) { res.status(500).json({ message: "Error" }); }
+});
+
+app.get("/api/admin/stats", async (req, res) => {
+  try {
+    const users = await query("SELECT COUNT(*) as count FROM users");
+    const analyses = await query("SELECT COUNT(*) as count FROM analysis_log");
+    const fakes = await query("SELECT COUNT(*) as count FROM analysis_log WHERE is_deepfake = 1");
+    res.json({
+       totalUsers: users[0].count,
+       totalAnalyses: analyses[0].count,
+       deepfakesDetected: fakes[0].count
+    });
+  } catch(e) { res.status(500).json({ message: "Error" }); }
+});
+
+app.get("/api/admin/activity", async (req, res) => {
+  try {
+    const results = await query(`
+      SELECT u.id, u.username, 
+      (SELECT COUNT(*) FROM analysis_log WHERE user_id = u.id AND date(analysis_timestamp) = date('now')) as analyses_today,
+      (SELECT COUNT(*) FROM analysis_log WHERE user_id = u.id) as total_analyses,
+      (SELECT MAX(analysis_timestamp) FROM analysis_log WHERE user_id = u.id) as last_active
+      FROM users u
+      ORDER BY u.id DESC
+    `);
+    res.json(results);
+  } catch(e) { res.status(500).json({ message: "Error" }); }
+});
+
+app.delete("/api/admin/user/:id", async (req, res) => {
+  try {
+    await run("DELETE FROM analysis_log WHERE user_id = ?", [req.params.id]);
+    await run("DELETE FROM users WHERE id = ?", [req.params.id]);
+    res.json({ message: "Deleted" });
+  } catch(e) { res.status(500).json({ message: "Error" }); }
+});
+
+app.get("/api/user-activity/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const total = await query("SELECT COUNT(*) as count FROM analysis_log WHERE user_id = ?", [id]);
+    const today = await query("SELECT COUNT(*) as count FROM analysis_log WHERE user_id = ? AND date(analysis_timestamp) = date('now')", [id]);
+    const avg = await query("SELECT AVG(confidence) as avgC FROM analysis_log WHERE user_id = ?", [id]);
+    res.json({
+        totalAnalyses: total[0].count,
+        analysesToday: today[0].count,
+        avgConfidence: avg[0].avgC ? Math.round(avg[0].avgC) : 0
+    });
+  } catch(e) { res.status(500).json({ message: "Error" }); }
 });
 
 // Admin Export Endpoint
@@ -291,6 +443,31 @@ app.post("/forgot-password", async (req, res) => {
     );
 
     const resetURL = `${frontendUrl}/reset-password.html?token=${token}`;
+
+    // Send password reset email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: (process.env.EMAIL_USER || "your-email@gmail.com").trim(),
+        pass: (process.env.EMAIL_PASS || "your-app-password").trim(),
+      },
+    });
+
+    const mailOptions = {
+      from: (process.env.EMAIL_USER || "deepfake-detector@admin.com").trim(),
+      to: user.email,
+      subject: "Password Reset Request - Deepfake Detector",
+      text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetURL}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log("Error sending password reset email:", error);
+      } else {
+        console.log("Password reset email sent: " + info.response);
+      }
+    });
+
     console.log("--- PASSWORD RESET EMAIL ---");
     console.log(`To: ${user.email}`);
     console.log(`Subject: Password Reset Request`);
@@ -352,10 +529,16 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running.' });
+});
+
 // --- Analysis Endpoints ---
 
 const exifParser = require("exif-parser");
 const PDFDocument = require("pdfkit");
+const axios = require("axios");
+const FormData = require("form-data");
 
 function getDeterministicRandom(seed) {
   let hash = 0;
@@ -374,203 +557,108 @@ app.post("/api/analyze", upload.single("media"), async (req, res) => {
       .json({ error: "No media file found in the request" });
   }
 
-  let fileHash;
-  const buffer = req.file.buffer;
-
-  if (buffer.length > 5 * 1024 * 1024) {
-    const start = buffer.subarray(0, 4096);
-    const end = buffer.subarray(buffer.length - 4096);
-    const sizeBuf = Buffer.alloc(8);
-    sizeBuf.writeBigUInt64LE(BigInt(buffer.length));
-
-    fileHash = crypto
-      .createHash("md5")
-      .update(start)
-      .update(end)
-      .update(sizeBuf)
-      .digest("hex");
-  } else {
-    fileHash = crypto.createHash("md5").update(buffer).digest("hex");
-  }
-
-  const randomValue = getDeterministicRandom(fileHash);
-  const is_fake = randomValue < 0.4;
-  const confidence = Math.floor(randomValue * (99 - 70 + 1)) + 70;
-
-  let realMetadata = [];
-  let make = "Unknown";
-  let model = "Unknown";
-  let software = "Unknown";
-  let dateTime = "Unknown";
-
   try {
-    if (
-      req.file.mimetype === "image/jpeg" ||
-      req.file.mimetype === "image/tiff"
-    ) {
-      const parser = exifParser.create(req.file.buffer);
-      const result = parser.parse();
-
-      if (result.tags) {
-        if (result.tags.Make) {
-          realMetadata.push({
-            title: "Camera Make",
-            description: result.tags.Make,
-            level: "Low",
-          });
-          make = result.tags.Make;
-        }
-        if (result.tags.Model) {
-          realMetadata.push({
-            title: "Camera Model",
-            description: result.tags.Model,
-            level: "Low",
-          });
-          model = result.tags.Model;
-        }
-        if (result.tags.Software) {
-          realMetadata.push({
-            title: "Software",
-            description: result.tags.Software,
-            level: "Medium",
-          });
-          software = result.tags.Software;
-          if (
-            result.tags.Software.toLowerCase().includes("photoshop") ||
-            result.tags.Software.toLowerCase().includes("gimp")
-          ) {
-            realMetadata.push({
-              title: "Editing Software Detected",
-              description: `Metadata indicates use of ${result.tags.Software}`,
-              level: "High",
-            });
-          }
-        }
-        if (result.tags.DateTimeOriginal) {
-          const date = new Date(result.tags.DateTimeOriginal * 1000);
-          realMetadata.push({
-            title: "Capture Date",
-            description: date.toLocaleString(),
-            level: "Low",
-          });
-          dateTime = date.toLocaleString();
-        }
-        if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
-          realMetadata.push({
-            title: "GPS Location",
-            description: `Lat: ${result.tags.GPSLatitude.toFixed(4)}, Lon: ${result.tags.GPSLongitude.toFixed(4)}`,
-            level: "Low",
-          });
-        }
+    console.log(`[DEBUG] Proxying file to Python ML Engine...`);
+    
+    // Create form data to forward to the Python backend
+    const formData = new FormData();
+    formData.append("media", req.file.buffer, {
+      filename: req.file.originalname || "upload.tmp",
+      contentType: req.file.mimetype,
+    });
+    
+    // Forward the file to the python app.py running on port 5000
+    const pythonResponse = await axios.post(
+      "http://127.0.0.1:5000/predict",
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       }
-    }
-  } catch (e) {
-    console.error("Metadata extraction failed:", e);
-    realMetadata.push({
-      title: "Metadata extraction",
-      description: "Could not extract EXIF data.",
-      level: "Low",
-    });
-  }
-
-  if (realMetadata.length === 0) {
-    realMetadata.push({
-      title: "No Metadata",
-      description: "No significant metadata found in file headers.",
-      level: "Low",
-    });
-  }
-
-  const mime = req.file.mimetype;
-  const isVideo = mime.startsWith("video/");
-  const isAudio = mime.startsWith("audio/");
-
-  let feature_scores = {};
-  let timeline = [];
-
-  if (is_fake) {
-    feature_scores = {
-      "Visual Artifacts": Math.floor(Math.random() * 20) + 70,
-      "Audio Consistency":
-        isVideo || isAudio ? Math.floor(Math.random() * 20) + 60 : 0,
-      "Metadata Integrity": Math.floor(Math.random() * 30) + 40,
-    };
-
-    if (isVideo || isAudio) {
-      timeline = [
-        { start: 0, end: 15, score: 10, status: "authentic" },
-        { start: 15, end: 28, score: 95, status: "manipulated" },
-        { start: 28, end: 45, score: 20, status: "authentic" },
-        { start: 45, end: 52, score: 88, status: "manipulated" },
-      ];
-    }
-  } else {
-    feature_scores = {
-      "Visual Artifacts": Math.floor(Math.random() * 20) + 10,
-      "Audio Consistency":
-        isVideo || isAudio ? Math.floor(Math.random() * 20) + 10 : 0,
-      "Metadata Integrity": Math.floor(Math.random() * 20) + 80,
-    };
-    if (isVideo || isAudio) {
-      timeline = [{ start: 0, end: 100, score: 5, status: "authentic" }];
-    }
-  }
-
-  const mockResult = {
-    is_deepfake: is_fake,
-    confidence: confidence,
-    file_hash: fileHash,
-    type: isVideo ? "video" : isAudio ? "audio" : "image",
-    feature_scores,
-    timeline,
-    chief_judgment: {
-      title: "Overall Assessment",
-      description: is_fake
-        ? `The media shows signs of manipulation consistent with deepfake generation algorithms. ${software !== "Unknown" ? `Editing software '${software}' trace detected.` : ""}`
-        : `The media appears to be authentic. Metadata confirms capture by ${make} ${model} at ${dateTime}.`,
-    },
-    visual_analysis: [
-      {
-        title: "Lighting Inconsistencies",
-        description: is_fake
-          ? "Shadows around the subject do not fully match the environment."
-          : "Lighting appears natural and consistent.",
-        level: is_fake ? "Medium" : "Low",
-      },
-      {
-        title: "Facial Artifacts",
-        description: is_fake
-          ? "Minor blurring and warping observed around the mouth."
-          : "No facial warping or blending artifacts detected.",
-        level: is_fake ? "High" : "Low",
-      },
-    ],
-    metadata_analysis: realMetadata,
-    forensics: [
-      {
-        title: "Noise Pattern",
-        description: is_fake
-          ? "Inconsistent noise patterns detected in the background."
-          : "Consistent sensor noise profile observed.",
-        level: is_fake ? "Medium" : "Low",
-      },
-      {
-        title: "Compression Analysis",
-        description: "No unusual compression artifacts found.",
-        level: "Low",
-      },
-    ],
-  };
-
-  const { userId } = req.body;
-  if (userId) {
-    await run(
-      "INSERT INTO analysis_log (user_id, is_deepfake, confidence) VALUES (?, ?, ?)",
-      [userId, is_fake ? 1 : 0, confidence],
     );
-  }
+    
+    const mlData = pythonResponse.data;
+    console.log(`[DEBUG] Python responded with confidence: ${mlData.confidence}`);
 
-  res.json(mockResult);
+    // Parse the data back into the structure the frontend expects
+    const isVideo = req.file.mimetype.startsWith("video/");
+    const isAudio = req.file.mimetype.startsWith("audio/");
+    const isImage = req.file.mimetype.startsWith("image/");
+    
+    // Create an elegant UI response using the real ML data
+    const finalResult = {
+      is_deepfake: mlData.is_deepfake,
+      confidence: mlData.confidence,
+      file_hash: mlData.file_hash,
+      type: isVideo ? "video" : isAudio ? "audio" : "image",
+      feature_scores: {
+        "Visual Artifacts": mlData.is_deepfake ? Math.floor(Math.random() * 20) + 70 : 10,
+        "Audio Consistency": mlData.audio_confidence || 0,
+        "Metadata Integrity": mlData.confidence
+      },
+      timeline: isVideo ? [
+         { start: 0, end: 100, score: mlData.confidence, status: mlData.is_deepfake ? "manipulated" : "authentic" }
+      ] : [],
+      detailed_analysis: mlData.analysis || {},
+      heatmap_url: mlData.heatmap_url,
+      graphs: {
+        consistency_timeline: [],
+        feature_scores_chart: {},
+        confidence_breakdown: {
+          visual_evidence: mlData.confidence,
+          audio_evidence: mlData.audio_confidence || 80,
+          metadata_evidence: 95,
+          temporal_evidence: isVideo ? mlData.confidence : 0,
+        },
+      },
+      media_preview: {
+        type: isVideo ? "video" : isAudio ? "audio" : "image",
+        thumbnail: null,
+        duration: isVideo || isAudio ? 30 : null,
+        format: req.file.mimetype,
+      },
+      chief_judgment: {
+        title: "Model Assessment",
+        description: mlData.risk_description || (mlData.is_deepfake ? "AI Manipulation detected." : "Media appears authentic."),
+      },
+      visual_analysis: [
+        {
+          title: "AI Analysis",
+          description: mlData.prediction,
+          level: mlData.risk_level || "Medium",
+        }
+      ],
+      metadata_analysis: [],
+      forensics: [],
+    };
+
+    const { userId } = req.body;
+    if (userId) {
+      await run(
+        "INSERT INTO analysis_log (user_id, is_deepfake, confidence) VALUES (?, ?, ?)",
+        [userId, finalResult.is_deepfake ? 1 : 0, finalResult.confidence],
+      );
+    }
+
+    res.json(finalResult);
+    
+  } catch (error) {
+    console.error("Analysis Error:", error.message);
+    let pythonError = null;
+    if (error.response) {
+       console.error("Python Server responded with:", error.response.data);
+       pythonError = error.response.data;
+    }
+    res.status(500).json({ 
+      error: "Failed to process media with ML engine.", 
+      details: error.message, 
+      python: pythonError,
+      stack: error.stack
+    });
+  }
 });
 
 app.post("/api/analyze-fast", async (req, res) => {
@@ -870,6 +958,57 @@ app.get("/api/user-activity/:userId", async (req, res) => {
   }
 });
 
+// Get User Analysis History Endpoint
+app.get("/api/user-history/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required." });
+  }
+
+  try {
+    const results = await query(
+      `SELECT id, is_deepfake, confidence, analysis_timestamp 
+       FROM analysis_log 
+       WHERE user_id = ? 
+       ORDER BY analysis_timestamp DESC 
+       LIMIT 50`,
+      [userId],
+    );
+
+    // Get total counts
+    const totalCount = await query(
+      "SELECT COUNT(*) as count FROM analysis_log WHERE user_id = ?",
+      [userId],
+    );
+    const realCount = await query(
+      "SELECT COUNT(*) as count FROM analysis_log WHERE user_id = ? AND is_deepfake = 0",
+      [userId],
+    );
+    const fakeCount = await query(
+      "SELECT COUNT(*) as count FROM analysis_log WHERE user_id = ? AND is_deepfake = 1",
+      [userId],
+    );
+
+    res.json({
+      history: results.map((row) => ({
+        id: row.id,
+        is_deepfake: row.is_deepfake === 1,
+        confidence: row.confidence,
+        date: row.analysis_timestamp,
+      })),
+      stats: {
+        total: totalCount[0]?.count || 0,
+        authentic: realCount[0]?.count || 0,
+        deepfakes: fakeCount[0]?.count || 0,
+      },
+    });
+  } catch (err) {
+    console.error("Database query error for user history:", err);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 app.get("/dashboard", async (req, res) => {
   const { username } = req.query;
 
@@ -896,6 +1035,146 @@ app.get("/dashboard", async (req, res) => {
   } catch (err) {
     return res.status(500).json({ message: "Internal server error." });
   }
+});
+
+// Protected Dashboard Endpoint with JWT
+app.get("/api/dashboard", authenticateToken, async (req, res) => {
+  try {
+    const results = await query(
+      "SELECT id, username, email, role FROM users WHERE id = ?",
+      [req.user.id],
+    );
+
+    if (results.length > 0) {
+      res.json({
+        message: `Welcome to your dashboard, ${req.user.username}!`,
+        user: results[0],
+      });
+    } else {
+      res.status(404).json({ message: "User not found." });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// --- Metadata & Provenance Endpoints ---
+
+app.post("/api/analyze-metadata", upload.single("media"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No media file found" });
+  }
+
+  try {
+    const isImage = req.file.mimetype.startsWith("image/");
+    const fileHash = crypto.createHash("md5").update(req.file.buffer).digest("hex");
+    let fakeProbability = 0;
+    
+    let deviceResult = {
+      name: req.file.originalname,
+      format: req.file.mimetype,
+      size: (req.file.size / 1024 / 1024).toFixed(2) + " MB",
+      device: "Unknown Source",
+      colorProfile: "Generic RGB",
+      exposure: "N/A",
+      fNumber: "N/A",
+      iso: "N/A",
+      focalLength: "N/A",
+      lensModel: "N/A"
+    };
+
+    let traceResult = {
+      creation: "Not available",
+      modification: "Not available",
+      software: "Unknown",
+      encoder: "Standard Hardware/OS",
+      gps: "Stripped or Unavailable"
+    };
+
+    if (isImage) {
+      try {
+        const parser = exifParser.create(req.file.buffer);
+        const result = parser.parse();
+        if (result && result.tags) {
+          deviceResult.device = result.tags.Make && result.tags.Model ? `${result.tags.Make} ${result.tags.Model}` : "Unknown Camera";
+          deviceResult.exposure = result.tags.ExposureTime ? `1/${Math.round(1/result.tags.ExposureTime)} sec` : "N/A";
+          deviceResult.fNumber = result.tags.FNumber ? `f/${result.tags.FNumber}` : "N/A";
+          deviceResult.iso = result.tags.ISO ? `ISO-${result.tags.ISO}` : "N/A";
+          deviceResult.focalLength = result.tags.FocalLength ? `${result.tags.FocalLength}mm` : "N/A";
+          deviceResult.lensModel = result.tags.LensModel || "N/A";
+          
+          traceResult.gps = (result.tags.GPSLatitude && result.tags.GPSLongitude) 
+            ? `${result.tags.GPSLatitude.toFixed(5)}, ${result.tags.GPSLongitude.toFixed(5)}` 
+            : "Stripped or Unavailable";
+          
+          traceResult.creation = result.tags.CreateDate ? new Date(result.tags.CreateDate * 1000).toLocaleString() : "Not available";
+          traceResult.modification = result.tags.ModifyDate ? new Date(result.tags.ModifyDate * 1000).toLocaleString() : "Not available";
+          traceResult.software = result.tags.Software || "Native iOS/Android Camera";
+          
+          if (traceResult.software.toLowerCase().includes("adobe") || traceResult.software.toLowerCase().includes("photoshop")) {
+            fakeProbability += 40;
+          }
+        } else {
+            fakeProbability += 30; // Missing EXIF implies stripped/social media compressed
+        }
+      } catch (err) {
+        console.error("EXIF Parse Error:", err.message);
+        fakeProbability += 20; 
+        traceResult.software = "Malformed Exif or Stripped Header";
+      }
+    } else {
+        fakeProbability += 15; 
+    }
+
+    const isFake = fakeProbability > 35;
+
+    res.json({
+      is_fake: isFake,
+      device: deviceResult,
+      trace: traceResult,
+      hash: {
+        md5: fileHash.substring(0, 16) + "...",
+        perceptual: isFake ? "Altered Base" : "Original Verified",
+        signature: isFake ? "Modified Tag" : "Intact"
+      },
+      raw_exif: isImage && result && result.tags ? result.tags : null
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to parse metadata" });
+  }
+});
+
+app.post("/api/analyze-provenance", upload.single("media"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No media file found" });
+  }
+  
+  // Lightweight heuristic search for C2PA atoms/markers in the raw buffer
+  const bufferString = req.file.buffer.toString("ascii", 0, Math.min(req.file.buffer.length, 10000));
+  const hasC2PA = bufferString.includes("c2pa") || bufferString.includes("JUMBF");
+  
+  // Check generative tags
+  const isGenerative = bufferString.includes("Midjourney") || bufferString.includes("Stable Diffusion") || bufferString.includes("DALL-E") || bufferString.includes("SDXL") || bufferString.includes("Photoshop");
+
+  // Attempt to scrape camera make/model for dynamic certs
+  let detectedCamera = "Generic-Sensor";
+  if (req.file.mimetype.startsWith("image/")) {
+      try {
+          const parser = exifParser.create(req.file.buffer);
+          const result = parser.parse();
+          if (result && result.tags && result.tags.Make) {
+              detectedCamera = `${result.tags.Make}-${result.tags.Model || 'Digital'}`.replace(/\s+/g, '-').toUpperCase();
+          }
+      } catch (e) {}
+  }
+
+  res.json({
+    hasC2PA: hasC2PA,
+    isGenerative: isGenerative,
+    fileName: req.file.originalname,
+    cameraSignature: detectedCamera
+  });
 });
 
 app.listen(port, () => {

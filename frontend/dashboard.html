@@ -385,7 +385,7 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="scanner.html" class="sidebar-nav-link">
+<a href="scanner_with_viz.html" class="sidebar-nav-link">
                         <span class="sidebar-nav-icon">🔍</span>
                         Scanner
                     </a>
@@ -397,9 +397,15 @@
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
-                    <a href="leetcode.html" class="sidebar-nav-link">
-                        <span class="sidebar-nav-icon">💻</span>
-                        LeetCode
+                    <a href="metadata-analyzer.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">📑</span>
+                        Metadata Analyzer
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="provenance.html" class="sidebar-nav-link">
+                        <span class="sidebar-nav-icon">🛡️</span>
+                        Provenance
                     </a>
                 </li>
                 <li class="sidebar-nav-item">
@@ -456,6 +462,7 @@
             </div>
             
             <!-- Stats -->
+            <div id="user-dashboard">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon blue">📊</div>
@@ -517,6 +524,51 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- End of user-dashboard -->
+            
+            <div id="admin-dashboard" class="hidden">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; border-radius: 8px; padding: 12px; display: inline-block;">👥</div>
+                        <div class="stat-value" id="admin-total-users" style="font-size: 2rem; font-weight: 800; margin-top: 8px;">0</div>
+                        <div class="stat-label" style="color: var(--text-secondary); margin-top: 4px;">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon yellow" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-radius: 8px; padding: 12px; display: inline-block;">📈</div>
+                        <div class="stat-value" id="admin-total-scans" style="font-size: 2rem; font-weight: 800; margin-top: 8px;">0</div>
+                        <div class="stat-label" style="color: var(--text-secondary); margin-top: 4px;">Total Scans Administered</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 8px; padding: 12px; display: inline-block;">⚠️</div>
+                        <div class="stat-value" id="admin-total-fakes" style="font-size: 2rem; font-weight: 800; margin-top: 8px;">0</div>
+                        <div class="stat-label" style="color: var(--text-secondary); margin-top: 4px;">Deepfakes Flagged</div>
+                    </div>
+                </div>
+                
+                <div class="recent-activity" style="margin-top: 24px;">
+                    <div class="section-header">
+                        <h2 class="section-title">System Users & Activity Log</h2>
+                        <button id="export-btn" class="btn btn-sm btn-secondary" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600;">Export CSV</button>
+                    </div>
+                    <div style="width: 100%; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead style="border-bottom: 2px solid var(--border); color: var(--text-secondary);">
+                                <tr>
+                                    <th style="padding: 12px">Username</th>
+                                    <th style="padding: 12px">Analyses (Today)</th>
+                                    <th style="padding: 12px">Total Analyses</th>
+                                    <th style="padding: 12px">Last Active</th>
+                                    <th style="padding: 12px; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log-body">
+                                <tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">Loading system activity...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
         </main>
     </div>
     
@@ -539,8 +591,8 @@
         }
         
         // Redirect to scanner
-        function redirectToScanner(type) {
-            window.location.href = 'scanner.html?type=' + type;
+function redirectToScanner(type) {
+            window.location.href = 'scanner_with_viz.html?type=' + type;
         }
         
         // Load dashboard data
@@ -554,9 +606,32 @@
             document.getElementById('userEmail').textContent = user.email;
             document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
             
+            var apiUrl = window.config.API_URL;
+            if (user.role === 'admin') {
+                document.getElementById('welcomeName').textContent = user.username + ' (Admin)';
+                document.getElementById('user-dashboard').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                try {
+                    var statsRes = await fetch(apiUrl + '/api/admin/stats');
+                    if (statsRes.ok) {
+                        var stats = await statsRes.json();
+                        document.getElementById('admin-total-users').textContent = stats.totalUsers || 0;
+                        document.getElementById('admin-total-scans').textContent = stats.totalAnalyses || 0;
+                        document.getElementById('admin-total-fakes').textContent = stats.deepfakesDetected || 0;
+                    }
+                    var actRes = await fetch(apiUrl + '/api/admin/activity');
+                    if (actRes.ok) {
+                        var acts = await actRes.json();
+                        var tbody = document.getElementById('activity-log-body');
+                        tbody.innerHTML = '';
+                        acts.forEach(function(a) {
+                           tbody.innerHTML += '<tr><td style="padding:12px;font-weight:bold;">' + a.username + '</td><td style="padding:12px;">' + a.analyses_today + '</td><td style="padding:12px;">' + a.total_analyses + '</td><td style="padding:12px;color:var(--text-muted);font-size:0.9rem;">' + (a.last_active ? new Date(a.last_active).toLocaleString() : 'Never') + '</td><td style="padding:12px;text-align:center;"><button onclick="alert(\'User deletion requires confirmation. This feature is pending an additional frontend patch.\')" style="color:red;background:rgba(255,0,0,0.1);padding:4px 8px;border:none;border-radius:4px;cursor:pointer;">[ Delete ]</button></td></tr>';
+                        });
+                    }
+                } catch(e) { console.error('Admin Fetch Err:', e); }
+            } else {
             try {
                 // Fetch user activity
-                var apiUrl = window.config.API_URL;
                 var response = await fetch(apiUrl + '/api/user-activity/' + user.id);
                 
                 if (response.ok) {
@@ -576,6 +651,7 @@
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
+            } // End of else block
             
             // Hide loading
             document.getElementById('loadingOverlay').classList.add('hidden');

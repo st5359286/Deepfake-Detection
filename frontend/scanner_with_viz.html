@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner - Deepfake Detector</title>
+    <link rel="stylesheet" href="modern.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        .loading-overlay.show { display: flex; }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--primary-light); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 24px 16px; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 32px; }
+        .sidebar-logo .logo-icon { width: 40px; height: 40px; }
+        .sidebar-logo .logo-text { font-size: 1.25rem; font-weight: 800; color: var(--primary); }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav-item { margin-bottom: 4px; }
+        .sidebar-nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-secondary); border-radius: var(--radius-md); font-weight: 500; transition: all 0.2s; text-decoration: none; }
+        .sidebar-nav-link:hover { background: var(--bg-main); color: var(--text-main); }
+        .sidebar-nav-link.active { background: rgba(79, 70, 229, 0.1); color: var(--primary); }
+        .sidebar-nav-icon { font-size: 1.25rem; }
+        .sidebar-footer { margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border); }
+        .user-info { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-main); border-radius: var(--radius-md); margin-bottom: 12px; }
+        .user-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .user-name { font-weight: 600; color: var(--text-main); font-size: 0.9rem; }
+        .logout-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: none; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; background: var(--bg-main); min-height: 100vh; }
+        .page-header { margin-bottom: 32px; }
+        .page-title { font-size: 1.75rem; margin-bottom: 8px; }
+        .page-subtitle { color: var(--text-secondary); }
+        .scanner-container { max-width: 1200px; margin: 0 auto; }
+        .upload-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 48px; box-shadow: var(--shadow-md); border: 1px solid var(--border); text-align: center; }
+        
+        /* Media type selection buttons */
+        .media-types { display: flex; justify-content: center; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+        .media-type-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 32px; background: var(--bg-main); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s; min-width: 120px; }
+        .media-type-btn:hover { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+        .media-type-btn.selected { border-color: var(--primary); background: rgba(79, 70, 229, 0.1); }
+        .media-type-icon { font-size: 2.5rem; }
+        .media-type-label { font-weight: 600; color: var(--text-main); }
+        
+        .browse-btn { display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; background: var(--primary); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.2s; margin-bottom: 16px; }
+        .browse-btn:hover { background: var(--primary-dark); }
+        
+        .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-lg); padding: 32px; transition: all 0.3s; margin-bottom: 16px; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(79, 70, 229, 0.04); }
+        .drop-zone-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+        .drop-zone-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .drop-zone-hint { color: var(--text-muted); font-size: 0.9rem; }
+        
+        .selected-file { display: none; align-items: center; gap: 16px; padding: 20px; background: rgba(79, 70, 229, 0.1); border-radius: var(--radius-md); margin-top: 24px; }
+        .selected-file.show { display: flex; }
+        .selected-file-icon { font-size: 2rem; }
+        .selected-file-info { flex: 1; text-align: left; }
+        .selected-file-name { font-weight: 600; color: var(--text-main); }
+        .selected-file-size { font-size: 0.875rem; color: var(--text-muted); }
+        .selected-file-remove { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+        .selected-file-remove:hover { color: var(--danger); }
+        
+        .analyze-btn { margin-top: 24px; display: none; }
+        .analyze-btn.show { display: inline-flex; }
+        
+        .results-section { margin-top: 32px; display: none; }
+        .results-section.show { display: block; }
+        .result-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 32px; box-shadow: var(--shadow-md); border: 1px solid var(--border); }
+        .result-header { text-align: center; padding: 32px; border-radius: var(--radius-lg); margin-bottom: 24px; }
+        .result-header.real { background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 2px solid var(--secondary); }
+        .result-header.fake { background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); border: 2px solid var(--danger); }
+        .result-icon { font-size: 4rem; margin-bottom: 16px; }
+        .result-label { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+        .result-header.real .result-label { color: var(--secondary); }
+        .result-header.fake .result-label { color: var(--danger); }
+        .confidence-score { font-size: 3rem; font-weight: 800; margin: 16px 0; }
+        .confidence-label { color: var(--text-secondary); }
+        
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+        .analysis-card { background: var(--bg-main); border-radius: var(--radius-md); padding: 20px; }
+        .analysis-card-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+        .analysis-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .analysis-row:last-child { border-bottom: none; }
+        .analysis-label { font-weight: 500; }
+        .analysis-value { color: var(--text-secondary); }
+        
+        /* Visualization Styles */
+        .viz-section { margin-top: 24px; }
+        .viz-card { background: var(--bg-main); border-radius: var(--radius-md); padding: 20px; margin-bottom: 24px; }
+        .viz-card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+        
+        /* Media Preview */
+        .media-preview-container { display: flex; gap: 24px; flex-wrap: wrap; }
+        .media-preview-box { flex: 1; min-width: 300px; }
+        .media-preview-item { border-radius: var(--radius-md); overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; min-height: 250px; }
+        .media-preview-item img, .media-preview-item video { max-width: 100%; max-height: 300px; }
+        .media-preview-placeholder { color: #666; font-size: 3rem; }
+        
+        /* Heatmap Canvas */
+        .heatmap-container { position: relative; display: inline-block; }
+        #heatmapCanvas { border-radius: var(--radius-md); max-width: 100%; }
+        .heatmap-legend { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: var(--text-secondary); }
+        
+        /* Consistency Graph */
+        .consistency-chart { height: 150px; display: flex; align-items: flex-end; gap: 4px; padding: 10px 0; }
+        .consistency-bar { flex: 1; border-radius: 4px 4px 0 0; transition: height 0.3s; }
+        .consistency-bar.authentic { background: linear-gradient(to top, #10B981, #34D399); }
+        .consistency-bar.manipulated { background: linear-gradient(to top, #EF4444, #F87171); }
+        
+        /* Confidence Breakdown Bar Chart */
+        .bar-chart { display: flex; flex-direction: column; gap: 12px; }
+        .bar-row { display: flex; align-items: center; gap: 12px; }
+        .bar-label { width: 100px; font-size: 0.85rem; font-weight: 500; }
+        .bar-container { flex: 1; height: 24px; background: var(--bg-card); border-radius: 12px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 12px; transition: width 0.5s; }
+        .bar-value { width: 50px; text-align: right; font-size: 0.85rem; font-weight: 600; }
+        
+        .loading-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .loading-overlay.show { display: flex; }
+        .loading-content { text-align: center; }
+        .loading-spinner { width: 64px; height: 64px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        .loading-text { font-size: 1.1rem; font-weight: 600; }
+        .loading-subtext { color: var(--text-muted); margin-top: 8px; }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) { 
+            .sidebar { display: none; } 
+            .main-content { margin-left: 0; padding: 16px; } 
+            .upload-card { padding: 24px; }
+            .media-types { flex-direction: column; }
+            .media-type-btn { width: 100%; }
+            .media-preview-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Analyzing your file...</div>
+            <div class="loading-subtext">This may take a few seconds</div>
+        </div>
+    </div>
+
+    <div class="scanner-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🔍</div>
+                <span class="logo-text">Deepfake<br>Detector</span>
+            </div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item"><a href="dashboard.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📊</span>Dashboard</a></li>
+                <li class="sidebar-nav-item"><a href="scanner_with_viz.html" class="sidebar-nav-link active"><span class="sidebar-nav-icon">🔍</span>Scanner</a></li>
+                <li class="sidebar-nav-item"><a href="live-detection.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📹</span>Live Detection</a></li>
+                <li class="sidebar-nav-item"><a href="result.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📋</span>History</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-name" id="userName">User</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">File Scanner</h1>
+                <p class="page-subtitle">Upload an image, video, or audio file for deepfake analysis</p>
+            </div>
+            
+            <div class="scanner-container">
+                <div class="upload-card" id="uploadCard">
+                    <div class="upload-icon">🎯</div>
+                    <h2 class="upload-title">Analyze Your File</h2>
+                    <p class="upload-subtitle">Select a file type and upload your media</p>
+                    
+                    <div class="media-types">
+                        <div class="media-type-btn" onclick="selectMediaType('image')" id="imageBtn">
+                            <span class="media-type-icon">🖼️</span>
+                            <span class="media-type-label">Image</span>
+                        </div>
+                        <div class="media-type-btn" onclick="selectMediaType('video')" id="videoBtn">
+                            <span class="media-type-icon">🎬</span>
+                            <span class="media-type-label">Video</span>
+                        </div>
+                        <div class="media-type-btn" onclick="selectMediaType('audio')" id="audioBtn">
+                            <span class="media-type-icon">🔊</span>
+                            <span class="media-type-label">Audio</span>
+                        </div>
+                    </div>
+                    
+                    <p id="mediaTypeStatus" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                        Click a type above to filter, then click "Choose File"
+                    </p>
+                    
+                    <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,audio/*" multiple>
+                    <button class="browse-btn" onclick="openFileBrowser()">📁 Choose File</button>
+                    
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-icon">☁️</div>
+                        <div class="drop-zone-text">Or drag and drop your file here</div>
+                        <div class="drop-zone-hint">Supports: JPG, PNG, GIF, MP4, AVI, WAV, MP3</div>
+                    </div>
+                    
+                    <div class="selected-file" id="selectedFile">
+                        <div class="selected-file-icon">📄</div>
+                        <div class="selected-file-info">
+                            <div class="selected-file-name" id="fileName">filename.jpg</div>
+                            <div class="selected-file-size" id="fileSize">2.5 MB</div>
+                        </div>
+                        <button class="selected-file-remove" onclick="removeFile()">×</button>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-lg analyze-btn" id="analyzeBtn" onclick="analyzeFile()">🔍 Analyze File</button>
+                </div>
+
+                <div class="results-section" id="resultsSection" style="display: flex; flex-direction: column; gap: 40px;">
+                    <!-- Dynamically Generated from JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        var selectedFiles = [];
+        var selectedMediaType = null;
+
+        function checkAuth() {
+            var user = localStorage.getItem('user');
+            if (!user) { window.location.href = 'login.html'; return null; }
+            return JSON.parse(user);
+        }
+
+        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+
+        var user = checkAuth();
+        if (user) {
+            document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            document.getElementById('userName').textContent = user.username;
+        }
+
+        function selectMediaType(type) {
+            selectedMediaType = type;
+            document.getElementById('imageBtn').classList.remove('selected');
+            document.getElementById('videoBtn').classList.remove('selected');
+            document.getElementById('audioBtn').classList.remove('selected');
+            document.getElementById(type + 'Btn').classList.add('selected');
+            var fileInput = document.getElementById('fileInput');
+            if (type === 'image') fileInput.accept = 'image/*';
+            else if (type === 'video') fileInput.accept = 'video/*';
+            else if (type === 'audio') fileInput.accept = 'audio/*';
+            fileInput.multiple = true;
+            document.getElementById('mediaTypeStatus').textContent = '✓ ' + type.toUpperCase() + ' selected! Now click "Choose File"';
+            document.getElementById('mediaTypeStatus').style.color = 'var(--primary)';
+        }
+
+        function openFileBrowser() { document.getElementById('fileInput').click(); }
+
+        var fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', function(e) { if (e.target.files.length > 0) handleFileSelect(e.target.files); });
+
+        var dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files); });
+        dropZone.addEventListener('click', openFileBrowser);
+
+        function handleFileSelect(files) {
+            selectedFiles = Array.from(files);
+            if(selectedFiles.length === 1) {
+                document.getElementById('fileName').textContent = selectedFiles[0].name;
+                document.getElementById('fileSize').textContent = formatFileSize(selectedFiles[0].size);
+            } else {
+                document.getElementById('fileName').textContent = selectedFiles.length + " files selected";
+                let totalSize = selectedFiles.reduce((acc, curr) => acc + curr.size, 0);
+                document.getElementById('fileSize').textContent = formatFileSize(totalSize);
+            }
+            document.getElementById('selectedFile').classList.add('show');
+            document.getElementById('analyzeBtn').classList.add('show');
+        }
+
+        function removeFile() { selectedFiles = []; fileInput.value = ''; document.getElementById('selectedFile').classList.remove('show'); document.getElementById('analyzeBtn').classList.remove('show'); }
+        function formatFileSize(bytes) { if (bytes === 0) return '0 Bytes'; var k = 1024; var sizes = ['Bytes', 'KB', 'MB', 'GB']; var i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; }
+
+        async function analyzeFile() {
+            if (selectedFiles.length === 0) { alert('Please select a file first!'); return; }
+            var user = checkAuth(); if (!user) return;
+            document.getElementById('loadingOverlay').classList.add('show');
+            
+            var resultsSection = document.getElementById('resultsSection');
+            resultsSection.innerHTML = '<h2 style="font-size: 1.5rem; font-weight: 700; border-bottom: 2px solid var(--border); padding-bottom: 12px;">📊 Batch Analysis Results</h2>';
+            document.getElementById('uploadCard').style.display = 'none';
+            resultsSection.classList.add('show');
+
+            for(let i=0; i<selectedFiles.length; i++) {
+                let file = selectedFiles[i];
+                var formData = new FormData(); formData.append('media', file); formData.append('userId', user.id);
+                try {
+                    var response = await fetch(window.config.API_URL + '/api/analyze', { method: 'POST', body: formData });
+                    var data = await response.json();
+                    if (response.ok) { 
+                        let html = generateResultHtml(data, file, i);
+                        resultsSection.insertAdjacentHTML('beforeend', html);
+                        renderGraphsAfterInjection(data, file, i);
+                    }
+                    else { resultsSection.insertAdjacentHTML('beforeend', `<div style="color:red; margin: 20px;">Analysis failed for ${file.name}: ${data.error || 'Unknown error'}</div>`); }
+                } catch (error) { 
+                    console.error('Analysis error:', error); 
+                    resultsSection.insertAdjacentHTML('beforeend', `<div style="color:red; margin: 20px;">Connection error analyzing ${file.name}.</div>`); 
+                }
+            }
+            
+            document.getElementById('loadingOverlay').classList.remove('show');
+            
+            resultsSection.insertAdjacentHTML('beforeend', `
+                <div style="text-align: center; margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
+                    <button class="btn btn-primary" onclick="newAnalysis()">➕ New Batch Analysis</button>
+                </div>
+            `);
+        }
+
+        function generateResultHtml(data, file, id) {
+            var isReal = !data.is_deepfake;
+            var headerClass = isReal ? 'real' : 'fake';
+            var icon = isReal ? '✅' : '⚠️';
+            var label = isReal ? 'Authentic' : 'Deepfake Detected';
+            var score = data.confidence + '%';
+            
+            var visualScr = data.feature_scores ? data.feature_scores['Visual Artifacts'] || 'N/A' : 'N/A';
+            var audioScr = data.feature_scores ? data.feature_scores['Audio Consistency'] || 'N/A' : 'N/A';
+            var metaScr = data.feature_scores ? data.feature_scores['Metadata Integrity'] || 'N/A' : 'N/A';
+            
+            var fType = file.type || 'Unknown';
+            var camera = 'Unknown';
+            var captureDate = 'Unknown';
+            if (data.metadata_analysis) {
+                var cMatch = data.metadata_analysis.find(m => m.title === 'Camera Model');
+                if(cMatch) camera = cMatch.description;
+                var dMatch = data.metadata_analysis.find(m => m.title === 'Capture Date');
+                if(dMatch) captureDate = dMatch.description;
+            }
+            
+            var judgment = data.chief_judgment ? data.chief_judgment.description : 'Authentic';
+            
+            var mediaType = data.type || (data.media_preview && data.media_preview.type) || 'unknown';
+            var url = URL.createObjectURL(file);
+            var previewHtml = '';
+            if (file.type.startsWith('image/')) previewHtml = `<img src="${url}" alt="Image">`;
+            else if (file.type.startsWith('video/')) previewHtml = `<video src="${url}" controls></video>`;
+            else if (file.type.startsWith('audio/')) previewHtml = `<audio src="${url}" controls></audio>`;
+            else previewHtml = `<div class="media-preview-placeholder">📄</div>`;
+
+            var heatmapDisplay = (data.graphs && data.graphs.manipulation_regions && data.graphs.manipulation_regions.length > 0) || data.is_deepfake ? 'block' : 'none';
+            var timelineInfo = data.graphs && data.graphs.consistency_timeline ? data.graphs.consistency_timeline : data.timeline;
+            var timelineDisplay = (timelineInfo && timelineInfo.length > 0) || (mediaType === 'video' || mediaType === 'audio') ? 'block' : 'none';
+            
+            var html = `
+            <div class="result-card" style="margin-bottom: 32px; padding: 32px; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-md);">
+                <h3 style="margin-bottom: 24px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 12px;">📄 File: ${file.name}</h3>
+                
+                <div class="result-header ${headerClass}">
+                    <div class="result-icon">${icon}</div>
+                    <div class="result-label">${label}</div>
+                    <div class="confidence-score">${score}</div>
+                    <div class="confidence-label">Confidence Score</div>
+                </div>
+                
+                <div class="viz-section">
+                    <div class="viz-card">
+                        <h3 class="viz-card-title">📱 Media Preview</h3>
+                        <div class="media-preview-container">
+                            <div class="media-preview-box">
+                                <div class="media-preview-item">
+                                    ${previewHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="viz-section" id="heatmapSection_${id}" style="display:${heatmapDisplay};">
+                    <div class="viz-card">
+                        <h3 class="viz-card-title">🗺️ Manipulation Heatmap</h3>
+                        <div class="heatmap-container">
+                            <canvas id="heatmapCanvas_${id}" width="400" height="300"></canvas>
+                            <div class="heatmap-legend">
+                                <span>🔴 High Manipulation</span>
+                                <span>🟡 Medium</span>
+                                <span>🟢 No Manipulation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="viz-section" id="consistencySection_${id}" style="display:${timelineDisplay};">
+                    <div class="viz-card">
+                        <h3 class="viz-card-title">📊 Consistency Timeline</h3>
+                        <div class="consistency-chart" id="consistencyChart_${id}"></div>
+                        <div style="display:flex;justify-content:center;gap:24px;margin-top:12px;font-size:0.85rem;">
+                            <span><span style="display:inline-block;width:12px;height:12px;background:#10B981;border-radius:2px;"></span> Authentic</span>
+                            <span><span style="display:inline-block;width:12px;height:12px;background:#EF4444;border-radius:2px;"></span> Manipulated</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="viz-section">
+                    <div class="viz-card">
+                        <h3 class="viz-card-title">📈 Confidence Breakdown</h3>
+                        <div class="bar-chart" id="confidenceChart_${id}"></div>
+                    </div>
+                </div>
+
+                <div class="analysis-grid">
+                    <div class="analysis-card">
+                        <h3 class="analysis-card-title">Chief Judgment</h3>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Assessment</span>
+                            <span class="analysis-value">${judgment}</span>
+                        </div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3 class="analysis-card-title">Feature Scores</h3>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Visual Artifacts</span>
+                            <span class="analysis-value">${visualScr}</span>
+                        </div>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Audio Consistency</span>
+                            <span class="analysis-value">${audioScr}</span>
+                        </div>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Metadata Integrity</span>
+                            <span class="analysis-value">${metaScr}</span>
+                        </div>
+                    </div>
+                    <div class="analysis-card">
+                        <h3 class="analysis-card-title">Metadata Analysis</h3>
+                        <div class="analysis-row">
+                            <span class="analysis-label">File Type</span>
+                            <span class="analysis-value">${fType}</span>
+                        </div>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Camera</span>
+                            <span class="analysis-value">${camera}</span>
+                        </div>
+                        <div class="analysis-row">
+                            <span class="analysis-label">Date</span>
+                            <span class="analysis-value">${captureDate}</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="detailedAnalysis_${id}" class="analysis-grid" style="margin-top: 24px;"></div>
+            </div>
+            `;
+            return html;
+        }
+
+        function renderGraphsAfterInjection(data, file, id) {
+            var canvas = document.getElementById('heatmapCanvas_' + id);
+            if (canvas) {
+                var ctx = canvas.getContext('2d');
+                if (data.graphs && data.graphs.manipulation_regions && data.graphs.manipulation_regions.length > 0) {
+                    var gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, '#10B981'); gradient.addColorStop(1, '#059669');
+                    ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    data.graphs.manipulation_regions.forEach(function(region) {
+                        var x = (region.x / 100) * canvas.width; var y = (region.y / 100) * canvas.height;
+                        var w = (region.width / 100) * canvas.width; var h = (region.height / 100) * canvas.height;
+                        var redGradient = ctx.createRadialGradient(x + w/2, y + h/2, 0, x + w/2, y + h/2, Math.max(w, h)/2);
+                        redGradient.addColorStop(0, 'rgba(239, 68, 68, ' + region.intensity + ')');
+                        redGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                        ctx.fillStyle = redGradient; ctx.fillRect(x - w/2, y - h/2, w * 2, h * 2);
+                    });
+                } else if (data.is_deepfake) {
+                    var gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, '#10B981'); gradient.addColorStop(0.5, '#FBBF24'); gradient.addColorStop(1, '#10B981');
+                    ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            var chart = document.getElementById('consistencyChart_' + id);
+            if (chart) {
+                var timeline = data.graphs && data.graphs.consistency_timeline ? data.graphs.consistency_timeline : data.timeline;
+                if (timeline && timeline.length > 0) {
+                    for (var i = 0; i < 50; i++) {
+                        var bar = document.createElement('div');
+                        var segment = timeline[Math.floor(i / (50 / timeline.length))];
+                        var isManipulated = segment && segment.status === 'manipulated';
+                        bar.className = 'consistency-bar ' + (isManipulated ? 'manipulated' : 'authentic');
+                        bar.style.height = (Math.random() * 80 + 20) + '%';
+                        bar.title = segment ? (segment.start + '-' + segment.end + 's: ' + segment.status) : '';
+                        chart.appendChild(bar);
+                    }
+                } else if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+                    for (var i = 0; i < 50; i++) {
+                        var bar = document.createElement('div');
+                        bar.className = 'consistency-bar ' + (data.is_deepfake ? 'manipulated' : 'authentic');
+                        bar.style.height = (data.is_deepfake ? 70 + Math.random() * 30 : 10 + Math.random() * 20) + '%';
+                        chart.appendChild(bar);
+                    }
+                }
+            }
+
+            var confChart = document.getElementById('confidenceChart_' + id);
+            if (confChart) {
+                var breakdown = data.graphs && data.graphs.confidence_breakdown ? data.graphs.confidence_breakdown : {
+                    visual_evidence: data.feature_scores ? data.feature_scores['Visual Artifacts'] || 0 : 0,
+                    audio_evidence: data.feature_scores ? data.feature_scores['Audio Consistency'] || 0 : 0,
+                    metadata_evidence: data.feature_scores ? data.feature_scores['Metadata Integrity'] || 0 : 0,
+                    temporal_evidence: 0
+                };
+                var labels = { visual_evidence: 'Visual Evidence', audio_evidence: 'Audio Consistency', metadata_evidence: 'Metadata Integrity', temporal_evidence: 'Temporal Consistency' };
+                var colors = { visual_evidence: '#EF4444', audio_evidence: '#8B5CF6', metadata_evidence: '#10B981', temporal_evidence: '#F59E0B' };
+                
+                Object.keys(breakdown).forEach(function(key) {
+                    if (breakdown[key] > 0 || key !== 'temporal_evidence') {
+                        var hHtml = `
+                        <div class="bar-row">
+                            <div class="bar-label">${labels[key] || key}</div>
+                            <div class="bar-container"><div class="bar-fill" style="width: ${breakdown[key]}%; background: linear-gradient(to right, ${colors[key]}, ${colors[key]}99);"></div></div>
+                            <div class="bar-value">${breakdown[key]}%</div>
+                        </div>`;
+                        confChart.insertAdjacentHTML('beforeend', hHtml);
+                    }
+                });
+            }
+
+            var detSec = document.getElementById('detailedAnalysis_' + id);
+            var htmlDet = '';
+            if (data.detailed_analysis && detSec) {
+                var da = data.detailed_analysis;
+                var mediaType = da.type || 'unknown';
+                htmlDet += '<div class="analysis-card"><h3 class="analysis-card-title">' + mediaType.toUpperCase() + ' Detailed Analysis</h3>';
+                
+                if (mediaType === 'image') {
+                    if (da.dimensions) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Dimensions</span><span class="analysis-value">' + (da.dimensions.width || 'N/A') + '</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Color Space</span><span class="analysis-value">' + (da.dimensions.color_space || 'N/A') + '</span></div>';
+                    }
+                    if (da.pixel_analysis) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Noise Level</span><span class="analysis-value">' + (da.pixel_analysis.noise_level || 'N/A') + '</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Compression</span><span class="analysis-value">' + (da.pixel_analysis.compression_artifacts || 'N/A') + '</span></div>';
+                    }
+                    if (da.face_detection) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Faces Found</span><span class="analysis-value">' + (da.face_detection.faces_found || 'N/A') + '</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Face Clarity</span><span class="analysis-value">' + (da.face_detection.face_clarity || 'N/A') + '</span></div>';
+                    }
+                } else if (mediaType === 'video') {
+                    if (da.duration) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Duration</span><span class="analysis-value">' + da.duration + ' seconds</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">FPS</span><span class="analysis-value">' + (da.fps || 'N/A') + '</span></div>';
+                    }
+                    if (da.temporal_consistency) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Motion</span><span class="analysis-value">' + (da.temporal_consistency.motion_smoothness || 'N/A') + '</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Lip Sync</span><span class="analysis-value">' + (da.audio_video_sync ? da.audio_video_sync.lip_sync_accuracy : 'N/A') + '</span></div>';
+                    }
+                } else if (mediaType === 'audio') {
+                    if (da.duration) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Duration</span><span class="analysis-value">' + da.duration + ' seconds</span></div>';
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Sample Rate</span><span class="analysis-value">' + (da.sample_rate || 'N/A') + ' Hz</span></div>';
+                    }
+                    if (da.spectral_analysis) {
+                        htmlDet += '<div class="analysis-row"><span class="analysis-label">Spectral Centroid</span><span class="analysis-value">' + (da.spectral_analysis.spectral_centroid || 'N/A') + '</span></div>';
+                    }
+                }
+                htmlDet += '</div>';
+                detSec.innerHTML = htmlDet;
+            }
+        }
+
+        async function downloadPDF() {
+            alert('PDF generation is not yet supported for batch results.');
+        }
+
+        function newAnalysis() {
+            removeFile();
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('uploadCard').style.display = 'block';
+            selectedMediaType = null;
+            document.getElementById('imageBtn').classList.remove('selected');
+            document.getElementById('videoBtn').classList.remove('selected');
+            document.getElementById('audioBtn').classList.remove('selected');
+        }
+    </script>
+</body>
+</html>
+

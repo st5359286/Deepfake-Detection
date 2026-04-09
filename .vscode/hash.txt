@@ -1,0 +1,14 @@
+The key fingerprint is:
+SHA256:A7Vq9oFEhLiH2t5e6zBsqYV3LpXQQA220AKc08FurCk st5359286@github.com
+The key's randomart image is:
++--[ED25519 256]--+
+|o.====o .        |
+| +o=+o.. .       |
+|  ++.oo .        |
+|  o+o..+         |
+| o+. .=.S        |
+|Eo.o +o. o       |
+|....O.o .        |
+|  .=o* .         |
+|  ...o+          |
++----[SHA256]-----+

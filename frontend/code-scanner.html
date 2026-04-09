@@ -8,6 +8,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --primary-light: #818CF8;
+            --secondary: #10B981;
+            --danger: #EF4444;
+            --bg-main: #F9FAFB;
+            --bg-card: #FFFFFF;
+            --text-main: #111827;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-sm: 6px;
+        }
         .scanner-layout { display: flex; min-height: 100vh; }
         .sidebar { width: 260px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 24px 16px; position: fixed; height: 100vh; overflow-y: auto; }
         .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 32px; }
@@ -99,9 +116,10 @@
             </div>
             <ul class="sidebar-nav">
                 <li class="sidebar-nav-item"><a href="dashboard.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📊</span>Dashboard</a></li>
-                <li class="sidebar-nav-item"><a href="scanner.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">🔍</span>Scanner</a></li>
+                <li class="sidebar-nav-item"><a href="scanner_with_viz.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">🔍</span>Scanner</a></li>
                 <li class="sidebar-nav-item"><a href="code-scanner.html" class="sidebar-nav-link active"><span class="sidebar-nav-icon">📱</span>Code Scanner</a></li>
-                <li class="sidebar-nav-item"><a href="leetcode.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">💻</span>LeetCode</a></li>
+                <li class="sidebar-nav-item"><a href="metadata-analyzer.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📑</span>Metadata Analyzer</a></li>
+                <li class="sidebar-nav-item"><a href="provenance.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">🛡️</span>Provenance</a></li>
                 <li class="sidebar-nav-item"><a href="live-detection.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📹</span>Live Detection</a></li>
                 <li class="sidebar-nav-item"><a href="result.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📋</span>History</a></li>
             </ul>
@@ -114,6 +132,7 @@
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <div class="user-name" id="userName">User</div>
+                </div>
                 <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
             </div>
         </aside>
@@ -132,13 +151,15 @@
                         <div class="drop-text">Drag & drop your code file here</div>
                         <div class="drop-hint">or click to browse</div>
                         <div class="drop-hint">Supported: .js, .py, .java, .cpp, .c, .cs, .php, .go, .rs</div>
-                    <input type="file" class="file-input" id="fileInput" accept=".js,.py,.java,.cpp,.c,.cs,.php,.go,.rs,.txt">
+                    </div>
+                    <input type="file" class="file-input" id="fileInput" accept=".js,.py,.java,.cpp,.c,.cs,.php,.go,.rs,.txt" multiple>
                     
                     <div class="selected-file" id="selectedFile">
                         <span class="file-icon">📄</span>
                         <div class="file-info">
                             <div class="file-name" id="fileName">filename.js</div>
                             <div class="file-size" id="fileSize">2.5 KB</div>
+                        </div>
                         <button class="file-remove" onclick="removeFile()">×</button>
                     </div>
                     
@@ -151,27 +172,35 @@
                         <div class="stat-box errors">
                             <div class="stat-value" id="errorCount">0</div>
                             <div class="stat-label">Errors</div>
+                        </div>
                         <div class="stat-box warnings">
                             <div class="stat-value" id="warningCount">0</div>
                             <div class="stat-label">Warnings</div>
+                        </div>
                         <div class="stat-box fixes">
                             <div class="stat-value" id="fixCount">0</div>
                             <div class="stat-label">Fixes</div>
+                        </div>
                         <div class="stat-box score">
                             <div class="stat-value" id="scoreValue">0%</div>
                             <div class="stat-label">Score</div>
+                        </div>
                     </div>
                     <div id="resultsContainer">
                         <div class="result-card info">
                             <div class="result-title">📤 Upload a File</div>
                             <div class="result-desc">Upload a code file to scan for bugs, security issues, and get AI-powered fixes.</div>
+                        </div>
                     </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <script src="config.js"></script>
     <script>
+        // Debug - test if JavaScript is running
+        console.log("Code Scanner JavaScript loaded");
+        
         var selectedFile = null;
         
         function checkAuth() {
@@ -189,9 +218,36 @@
         }
         
         var user = checkAuth();
+        // Show page even if not logged in for now - for debugging
         if (user) {
             document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
             document.getElementById('userName').textContent = user.username;
+        } else {
+            document.getElementById('userAvatar').textContent = 'G';
+            document.getElementById('userName').textContent = 'Guest';
+        }
+        
+        var selectedFiles = [];
+        
+        function handleFileSelect(files) {
+            selectedFiles = Array.from(files);
+            if(selectedFiles.length === 1) {
+                document.getElementById('fileName').textContent = selectedFiles[0].name;
+                document.getElementById('fileSize').textContent = formatFileSize(selectedFiles[0].size);
+            } else {
+                document.getElementById('fileName').textContent = selectedFiles.length + " files selected";
+                let totalSize = selectedFiles.reduce((acc, curr) => acc + curr.size, 0);
+                document.getElementById('fileSize').textContent = formatFileSize(totalSize);
+            }
+            document.getElementById('selectedFile').classList.add('show');
+            document.getElementById('scanBtn').disabled = false;
+        }
+        
+        function removeFile() {
+            selectedFiles = [];
+            fileInput.value = '';
+            document.getElementById('selectedFile').classList.remove('show');
+            document.getElementById('scanBtn').disabled = true;
         }
         
         var dropZone = document.getElementById('dropZone');
@@ -212,30 +268,15 @@
             e.preventDefault();
             dropZone.classList.remove('dragover');
             if (e.dataTransfer.files.length > 0) {
-                handleFileSelect(e.dataTransfer.files[0]);
+                handleFileSelect(e.dataTransfer.files);
             }
         });
         
         fileInput.addEventListener('change', function(e) {
             if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
+                handleFileSelect(e.target.files);
             }
         });
-        
-        function handleFileSelect(file) {
-            selectedFile = file;
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('fileSize').textContent = formatFileSize(file.size);
-            document.getElementById('selectedFile').classList.add('show');
-            document.getElementById('scanBtn').disabled = false;
-        }
-        
-        function removeFile() {
-            selectedFile = null;
-            fileInput.value = '';
-            document.getElementById('selectedFile').classList.remove('show');
-            document.getElementById('scanBtn').disabled = true;
-        }
         
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -266,20 +307,26 @@
         ];
         
         async function scanCode() {
-            if (!selectedFile) {
+            if (selectedFiles.length === 0) {
                 alert('Please select a file first!');
                 return;
             }
             
             document.getElementById('loadingOverlay').classList.add('show');
+            let resultsSection = document.querySelector('.results-section');
+            resultsSection.innerHTML = '<h2 class="section-title">📊 Batch Scan Results</h2>';
             
-            try {
-                var code = await selectedFile.text();
-                var results = analyzeCode(code);
-                displayResults(results);
-            } catch (error) {
-                console.error('Error reading file:', error);
-                alert('Error reading file. Please try again.');
+            for (let i = 0; i < selectedFiles.length; i++) {
+                let file = selectedFiles[i];
+                try {
+                    var code = await file.text();
+                    var results = analyzeCode(code);
+                    let fileHtml = generateFileResultsHtml(results, file.name);
+                    resultsSection.insertAdjacentHTML('beforeend', fileHtml);
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    resultsSection.insertAdjacentHTML('beforeend', `<div style="color:red;margin:10px;">Failed to scan ${file.name}.</div>`);
+                }
             }
             
             document.getElementById('loadingOverlay').classList.remove('show');
@@ -357,18 +404,17 @@
             return { results: results, errors: errors, warnings: warnings, fixes: fixes, score: score };
         }
         
-        function displayResults(data) {
-            var statsGrid = document.getElementById('statsGrid');
-            var resultsContainer = document.getElementById('resultsContainer');
-            
-            document.getElementById('errorCount').textContent = data.errors;
-            document.getElementById('warningCount').textContent = data.warnings;
-            document.getElementById('fixCount').textContent = data.fixes;
-            document.getElementById('scoreValue').textContent = data.score + '%';
-            
-            statsGrid.style.display = 'grid';
-            
-            var html = '';
+        function generateFileResultsHtml(data, fileName) {
+            var html = `<div style="margin-bottom: 32px; padding: 20px; background: rgba(79, 70, 229, 0.03); border: 1px solid var(--border); border-radius: var(--radius-lg);">
+                <h3 style="margin-bottom: 24px; font-weight: 700; font-size: 1.1rem;">📄 File: ${fileName}</h3>
+                <div class="stats-grid" style="display: grid;">
+                    <div class="stat-box errors"><div class="stat-value">${data.errors}</div><div class="stat-label">Errors</div></div>
+                    <div class="stat-box warnings"><div class="stat-value">${data.warnings}</div><div class="stat-label">Warnings</div></div>
+                    <div class="stat-box fixes"><div class="stat-value">${data.fixes}</div><div class="stat-label">Fixes</div></div>
+                    <div class="stat-box score"><div class="stat-value">${data.score}%</div><div class="stat-label">Health Score</div></div>
+                </div>
+                <div style="margin-top: 16px;">`;
+                
             data.results.forEach(function(result) {
                 var cardClass = result.type;
                 html += '<div class="result-card ' + cardClass + '">';
@@ -385,7 +431,8 @@
                 html += '</div>';
             });
             
-            resultsContainer.innerHTML = html;
+            html += `</div></div>`;
+            return html;
         }
     </script>
 </body>

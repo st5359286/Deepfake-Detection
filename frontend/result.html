@@ -6,6 +6,7 @@
     <title>Results - Deepfake Detector</title>
     <link rel="stylesheet" href="modern.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         .results-layout { display: flex; min-height: 100vh; }
@@ -17,19 +18,19 @@
         .sidebar-nav-item { margin-bottom: 4px; }
         .sidebar-nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-secondary); border-radius: var(--radius-md); font-weight: 500; transition: all 0.2s; }
         .sidebar-nav-link:hover { background: var(--bg-main); color: var(--text-main); }
-        .sidebar-nav-link.active { background: rgba(79, 70, 229, 0.1); color: var(--primary); }
+        .sidebar-nav-link.active { background: rgba(79, 70,229,0.1); color: var(--primary); }
         .sidebar-nav-icon { font-size: 1.25rem; }
         .sidebar-footer { margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border); }
         .user-info { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-main); border-radius: var(--radius-md); margin-bottom: 12px; }
         .user-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
         .user-name { font-weight: 600; color: var(--text-main); font-size: 0.9rem; }
         .logout-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: none; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; font-weight: 500; transition: all 0.2s; }
-        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: var(--danger); }
+        .logout-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--danger); color: var(--danger); }
         .main-content { flex: 1; margin-left: 260px; padding: 32px; background: var(--bg-main); min-height: 100vh; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .page-title { font-size: 1.75rem; margin-bottom: 8px; }
         .page-subtitle { color: var(--text-secondary); }
-        .results-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+        .results-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 32px; }
         .stat-box { background: var(--bg-card); border-radius: var(--radius-md); padding: 20px; text-align: center; border: 1px solid var(--border); }
         .stat-box-value { font-size: 1.5rem; font-weight: 800; }
         .stat-box-label { font-size: 0.875rem; color: var(--text-muted); }
@@ -45,8 +46,8 @@
         .result-item:hover { background: var(--bg-main); }
         .result-item:last-child { border-bottom: none; }
         .result-icon { width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .result-icon.real { background: rgba(16, 185, 129, 0.1); color: var(--secondary); }
-        .result-icon.fake { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .result-icon.real { background: rgba(16,185,129,0.1); color: var(--secondary); }
+        .result-icon.fake { background: rgba(239,68,68,0.1); color: var(--danger); }
         .result-info { flex: 1; }
         .result-filename { font-weight: 600; margin-bottom: 4px; }
         .result-date { font-size: 0.875rem; color: var(--text-muted); }
@@ -56,8 +57,8 @@
         .confidence-value.fake { color: var(--danger); }
         .confidence-label { font-size: 0.75rem; color: var(--text-muted); }
         .result-badge { padding: 6px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-        .result-badge.real { background: rgba(16, 185, 129, 0.1); color: var(--secondary); }
-        .result-badge.fake { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .result-badge.real { background: rgba(16,185,129,0.1); color: var(--secondary); }
+        .result-badge.fake { background: rgba(239,68,68,0.1); color: var(--danger); }
         .empty-state { text-align: center; padding: 60px 20px; }
         .empty-icon { font-size: 4rem; margin-bottom: 16px; opacity: 0.3; }
         .empty-title { font-size: 1.25rem; margin-bottom: 8px; }
@@ -71,7 +72,7 @@
             <div class="sidebar-logo"><div class="logo-icon">🔍</div><span class="logo-text">Deepfake<br>Detector</span></div>
             <ul class="sidebar-nav">
                 <li class="sidebar-nav-item"><a href="dashboard.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📊</span>Dashboard</a></li>
-                <li class="sidebar-nav-item"><a href="scanner.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">🔍</span>Scanner</a></li>
+                <li class="sidebar-nav-item"><a href="scanner_with_viz.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">🔍</span>Scanner</a></li>
                 <li class="sidebar-nav-item"><a href="live-detection.html" class="sidebar-nav-link"><span class="sidebar-nav-icon">📹</span>Live Detection</a></li>
                 <li class="sidebar-nav-item"><a href="result.html" class="sidebar-nav-link active"><span class="sidebar-nav-icon">📋</span>History</a></li>
             </ul>
@@ -99,17 +100,89 @@
     </div>
     <script src="config.js"></script>
     <script>
-        function checkAuth() { var user = localStorage.getItem('user'); if (!user) { window.location.href = 'login.html'; return null; } return JSON.parse(user); }
-        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
-        var results = [
-            { id: 1, filename: 'image_001.jpg', type: 'image', is_deepfake: false, confidence: 92, date: '2024-01-15 10:30' },
-            { id: 2, filename: 'video_demo.mp4', type: 'video', is_deepfake: true, confidence: 87, date: '2024-01-14 15:45' },
-            { id: 3, filename: 'audio_sample.wav', type: 'audio', is_deepfake: false, confidence: 95, date: '2024-01-13 09:20' },
-        ];
+        // Authentication Check
+        function checkAuth() {
+            var user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return JSON.parse(user);
+        }
+
+        // Logout Function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        // Fetch User History from Backend
+        async function fetchUserHistory(userId) {
+            try {
+                var apiUrl = window.config ? window.config.API_URL : 'http://localhost:3000';
+                const response = await fetch(apiUrl + '/api/user-history/' + userId);
+                if (!response.ok) throw new Error('Failed to fetch history');
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching history:', error);
+                return null;
+            }
+        }
+
+        // Render Results
+        var results = [];
+
+        async function renderResults(filter) {
+            if (filter === undefined) filter = 'all';
+            
+            var user = checkAuth();
+            if (!user) return;
+
+            var list = document.getElementById('resultsList');
+            list.innerHTML = '<li class="empty-state"><div class="empty-icon">⏳</div><h3 class="empty-title">Loading...</h3><p class="empty-desc">Fetching your analysis history</p></li>';
+
+            var historyData = await fetchUserHistory(user.id);
+            
+            var stats = { total: 0, authentic: 0, deepfakes: 0 };
+
+            if (historyData && historyData.history) {
+                results = historyData.history;
+                stats = historyData.stats;
+            }
+
+            document.getElementById('totalCount').textContent = stats.total;
+            document.getElementById('realCount').textContent = stats.authentic;
+            document.getElementById('fakeCount').textContent = stats.deepfakes;
+
+            var filtered = filter === 'all' ? results : results.filter(function(r) { 
+                return filter === 'real' ? !r.is_deepfake : r.is_deepfake; 
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<li class="empty-state"><div class="empty-icon">📋</div><h3 class="empty-title">No results yet</h3><p class="empty-desc">Start analyzing files to see your history here</p></li>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(function(result) {
+                var date = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+                return '<li class="result-item"><div class="result-icon ' + (result.is_deepfake ? 'fake' : 'real') + '">' + (result.is_deepfake ? '⚠️' : '✅') + '</div><div class="result-info"><div class="result-filename">Analysis #' + result.id + '</div><div class="result-date">' + date + '</div></div><div class="result-confidence"><div class="confidence-value ' + (result.is_deepfake ? 'fake' : 'real') + '">' + result.confidence + '%</div><div class="confidence-label">Confidence</div></div><span class="result-badge ' + (result.is_deepfake ? 'fake' : 'real') + '">' + (result.is_deepfake ? 'Deepfake' : 'Authentic') + '</span></li>';
+            }).join('');
+        }
+
+        function filterResults() {
+            var filter = document.getElementById('filterSelect').value;
+            renderResults(filter);
+        }
+
+        // Initialize
         var user = checkAuth();
-        if (user) { document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase(); document.getElementById('userName').textContent = user.username; renderResults(); }
-        function renderResults(filter) { if (filter === undefined) filter = 'all'; var list = document.getElementById('resultsList'); var filtered = filter === 'all' ? results : results.filter(function(r) { return filter === 'real' ? !r.is_deepfake : r.is_deepfake; }); if (filtered.length === 0) { list.innerHTML = '<li class="empty-state"><div class="empty-icon">📋</div><h3 class="empty-title">No results found</h3><p class="empty-desc">No analyses match the selected filter</p></li>'; return; } list.innerHTML = filtered.map(function(result) { return '<li class="result-item"><div class="result-icon ' + (result.is_deepfake ? 'fake' : 'real') + '">' + (result.is_deepfake ? '⚠️' : '✅') + '</div><div class="result-info"><div class="result-filename">' + result.filename + '</div><div class="result-date">' + result.date + '</div></div><div class="result-confidence"><div class="confidence-value ' + (result.is_deepfake ? 'fake' : 'real') + '">' + result.confidence + '%</div><div class="confidence-label">Confidence</div></div><span class="result-badge ' + (result.is_deepfake ? 'fake' : 'real') + '">' + (result.is_deepfake ? 'Deepfake' : 'Authentic') + '</span></li>'; }).join(''); document.getElementById('totalCount').textContent = results.length; document.getElementById('realCount').textContent = results.filter(function(r) { return !r.is_deepfake; }).length; document.getElementById('fakeCount').textContent = results.filter(function(r) { return r.is_deepfake; }).length; }
-        function filterResults() { var filter = document.getElementById('filterSelect').value; renderResults(filter); }
+        if (user) {
+            document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            document.getElementById('userName').textContent = user.username;
+            renderResults();
+        }
     </script>
 </body>
 </html>

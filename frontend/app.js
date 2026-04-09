@@ -1,4 +1,4 @@
-import config from './config.js';
+const config = window.config || { API_URL: 'http://localhost:3000' };
 
 // --- DOM Element Selection ---
 const screens = {

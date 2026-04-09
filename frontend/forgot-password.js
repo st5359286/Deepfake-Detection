@@ -1,4 +1,4 @@
-import config from './config.js';
+const config = window.config || { API_URL: 'http://localhost:3000' };
 
 document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
     e.preventDefault();

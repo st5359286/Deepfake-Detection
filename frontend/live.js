@@ -16,7 +16,6 @@ const idleOverlay = document.getElementById("idle-overlay");
 
 const modeWebcamBtn = document.getElementById("mode-webcam");
 const modeScreenBtn = document.getElementById("mode-screen");
-const modeAudioBtn = document.getElementById("mode-audio");
 
 const statusIndicator = document.getElementById("status-indicator");
 const statusText = document.getElementById("status-text");
@@ -133,30 +132,7 @@ async function startScreenShare() {
   }
 }
 
-async function startVoiceAnalysis() {
-  await stopStream();
-  currentMode = "audio";
-  updateModeUI();
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    currentStream = stream;
-
-    if (idleOverlay) {
-      idleOverlay.innerHTML =
-        '<div class="w-24 h-24 rounded-full bg-accent/10 flex items-center justify-center mb-4"><svg class="w-12 h-12 text-accent animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg></div><p class="text-white font-medium mb-1">Voice Analysis</p><p class="text-gray-500 text-sm">Speak for 3-5 seconds</p>';
-      idleOverlay.classList.remove("hidden");
-    }
-
-    setStatus("Voice Ready", "ready");
-    if (startBtn) {
-      startBtn.disabled = false;
-      startBtn.classList.remove("opacity-50", "cursor-not-allowed");
-    }
-  } catch (err) {
-    setStatus("Mic Error", "warning");
-  }
-}
+// Voice analysis removed per user request
 
 function handleStreamSuccess(stream) {
   currentStream = stream;
@@ -181,16 +157,17 @@ function handleStreamSuccess(stream) {
 }
 
 function updateModeUI() {
-  const buttons = [modeWebcamBtn, modeScreenBtn, modeAudioBtn];
+  const buttons = [modeWebcamBtn, modeScreenBtn];
   buttons.forEach(function (btn) {
-    btn.classList.remove("active", "text-white", "border-white/10");
-    btn.classList.add("text-gray-400", "border-white/10");
+    if (btn) {
+      btn.classList.remove("active", "text-white", "border-white/10");
+      btn.classList.add("text-gray-400", "border-white/10");
+    }
   });
 
   let activeBtn;
   if (currentMode === "webcam") activeBtn = modeWebcamBtn;
   else if (currentMode === "screen") activeBtn = modeScreenBtn;
-  else activeBtn = modeAudioBtn;
 
   if (activeBtn) {
     activeBtn.classList.add("active", "text-white", "border-white/10");
@@ -232,11 +209,7 @@ async function loadModels() {
 if (startBtn) {
   startBtn.addEventListener("click", function () {
     if (modelLoaded || useSimulation) {
-      if (currentMode === "audio") {
-        startVoiceScan();
-      } else {
         startLivenessCheck();
-      }
     }
   });
 }
@@ -258,20 +231,7 @@ function startLivenessCheck() {
   runLivenessSequence();
 }
 
-function startVoiceScan() {
-  isScanning = true;
-  if (startBtn) startBtn.classList.add("hidden");
-  if (idleOverlay) idleOverlay.classList.add("hidden");
-
-  if (mainTitle) mainTitle.textContent = "Analyzing Voice";
-  if (instructionText)
-    instructionText.textContent = "Processing voice patterns...";
-  setStatus("Analyzing...", "scanning");
-
-  setTimeout(function () {
-    completeScan(true);
-  }, 10000);
-}
+// Voice scan removed
 
 const prompts = [
   {
@@ -480,11 +440,7 @@ if (modeScreenBtn) {
   });
 }
 
-if (modeAudioBtn) {
-  modeAudioBtn.addEventListener("click", function () {
-    if (currentMode !== "audio") startVoiceAnalysis();
-  });
-}
+// audio button listener removed
 
 // Init
 document.addEventListener("DOMContentLoaded", function () {

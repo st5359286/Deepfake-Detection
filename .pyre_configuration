@@ -1,0 +1,22 @@
+{
+  "source_directories": [
+    ".",
+    "Backend"
+  ],
+  "site_package_search_strategy": "all",
+  "search_path": [
+    {
+      "site-package": "cv2"
+    },
+    {
+      "site-package": "numpy"
+    },
+    {
+      "site-package": "flask"
+    },
+    {
+      "site-package": "werkzeug"
+    },
+    ".venv/Lib/site-packages"
+  ]
+}
